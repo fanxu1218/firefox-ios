@@ -9,6 +9,10 @@ import Storage
 import WebImage
 
 
+struct ASPanelUX {
+    static let backgroundColor = UIColor(white: 1.0, alpha: 0.5)
+}
+
 // Lifecycle
 class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     weak var homePanelDelegate: HomePanelDelegate? = nil
@@ -19,7 +23,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
         tableView.registerClass(SimpleHighlightCell.self, forCellReuseIdentifier: "Cell")
         tableView.registerClass(ASHorizontalScrollCell.self, forCellReuseIdentifier: "TopSite")
         tableView.registerClass(HighlightCell.self, forCellReuseIdentifier: "Highlight")
-        tableView.backgroundColor = UIColor(white: 1.0, alpha: 0.5)
+        tableView.backgroundColor = ASPanelUX.backgroundColor
         tableView.separatorStyle = .None
         tableView.delegate = self
         tableView.dataSource = self
@@ -87,7 +91,21 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     init(profile: Profile) {
         self.profile = profile
         super.init(nibName: nil, bundle: nil)
+
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationFirefoxAccountChanged, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationProfileDidFinishSyncing, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationPrivateDataClearedHistory, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationDynamicFontChanged, object: nil)
     }
+
+    deinit {
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationFirefoxAccountChanged, object: nil)
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationProfileDidFinishSyncing, object: nil)
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationPrivateDataClearedHistory, object: nil)
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationDynamicFontChanged, object: nil)
+    }
+
+
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -95,13 +113,21 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        reloadTopSitesWithLimit(10)
+        refreshTopSites(10)
+        
         reloadRecentHistoryWithLimit(10)
 
         view.addSubview(tableView)
         tableView.snp_makeConstraints { (make) in
             make.edges.equalTo(self.view)
         }
+    }
+
+    override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
+        if let handler = self.topSiteHandler {
+            handler.currentTraits = self.traitCollection
+        }
+
     }
 
 }
@@ -153,6 +179,8 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
 
     func configureTopSitesCell(cell: UITableViewCell, forIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let topSiteCell = cell as! ASHorizontalScrollCell
+        // The topSiteCell needs a refrence to the tableview because it needs to alert the tableView to relayout once topsites finishes loading.
+        topSiteCell.parentTableView = self.tableView
         topSiteCell.setDelegate(self.topSiteHandler)
         return cell
     }
@@ -185,6 +213,40 @@ extension ActivityStreamPanel {
     /*
      Simple methods to fetch some data from the DB
      */
+
+    func notificationReceived(notification: NSNotification) {
+        switch notification.name {
+        case NotificationProfileDidFinishSyncing:
+            // Only reload top sites if there the cache is dirty since the finish syncing
+            // notification is fired everytime the user re-enters the app from the background.
+            self.profile.history.areTopSitesDirty(withLimit: 10) >>== { dirty in
+                if dirty {
+                    self.refreshTopSites(10)
+                }
+            }
+        case NotificationFirefoxAccountChanged, NotificationPrivateDataClearedHistory, NotificationDynamicFontChanged:
+            self.refreshTopSites(10)
+        default:
+            // no need to do anything at all
+            print("Dont have this notification type")
+        }
+    }
+
+    private func refreshTopSites(frecencyLimit: Int) {
+        dispatch_async(dispatch_get_main_queue()) {
+            // Reload right away with whatever is in the cache, then check to see if the cache is invalid.
+            // If it's invalid, invalidate the cache and requery. This allows us to always show results
+            // immediately while also loading up-to-date results asynchronously if needed.
+            self.reloadTopSitesWithLimit(frecencyLimit) >>> {
+                self.profile.history.updateTopSitesCacheIfInvalidated() >>== { dirty in
+                    if dirty {
+                        self.reloadTopSitesWithLimit(frecencyLimit)
+                    }
+                }
+            }
+        }
+    }
+
     private func reloadTopSitesWithLimit(limit: Int) -> Success {
         return self.profile.history.getTopSitesWithLimit(limit).bindQueue(dispatch_get_main_queue()) { result in
             if let data = result.successValue {
@@ -197,6 +259,7 @@ extension ActivityStreamPanel {
                 self.topSiteHandler = ASHorizontalScrollSource()
                 self.topSiteHandler.content = self.topSites
                 self.topSiteHandler.urlPressedHandler = self.showSiteWithURL
+                self.topSiteHandler.currentTraits = self.traitCollection
                 self.tableView.reloadData()
             }
             return succeed()
@@ -216,6 +279,9 @@ extension ActivityStreamPanel {
 
 // HomePanel Protocol
 extension ActivityStreamPanel: HomePanel {
+
     func endEditing() {
+
     }
+
 }

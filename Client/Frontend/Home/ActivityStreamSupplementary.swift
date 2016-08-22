@@ -2,18 +2,19 @@ import Foundation
 import Shared
 import WebImage
 
+
+struct TopSiteItem {
+    let urlTitle: String
+    let faviconURL: NSURL?
+    let siteURL: NSURL
+}
+
 struct TopSiteCellUX {
     static let TitleInsetPercent: CGFloat = 0.66
     static let TitleBackgroundColor = UIColor(colorLiteralRed: 1, green: 1, blue: 1, alpha: 0.7)
     static let TitleTextColor = UIColor.blackColor()
     static let TitleFont = DynamicFontHelper.defaultHelper.DefaultSmallFont
     static let CellCornerRadius: CGFloat = 4
-}
-
-struct TopSiteItem {
-    let urlTitle: String
-    let faviconURL: NSURL?
-    let siteURL: NSURL
 }
 
 class TopSiteCell: UICollectionViewCell {
@@ -70,7 +71,6 @@ class TopSiteCell: UICollectionViewCell {
     private func setImageWithURL(url: NSURL) {
         imageView.sd_setImageWithURL(url) { [unowned self] (img, err, type, url) -> Void in
             guard let img = img else {
-                // No favicon found. Do something!
                 self.imageView.image = FaviconFetcher.getDefaultFavicon(url)
                 self.contentView.backgroundColor = UIColor.lightGrayColor()
                 return
@@ -106,6 +106,88 @@ class TopSiteCell: UICollectionViewCell {
 
 }
 
+struct ASHorizontalScrollCellUX {
+    static let TopSiteCellIdentifier = "TopSiteCell"
+    static let TopSiteItemSize = CGSize(width: 100, height: 100)
+    static let BackgroundColor = UIColor.whiteColor()
+}
+
+class ASHorizontalScrollCell: UITableViewCell {
+
+    lazy private var collectionView: UICollectionView = {
+        let layout  = HorizontalFlowLayout()
+        layout.itemSize = ASHorizontalScrollCellUX.TopSiteItemSize
+        layout.heightShouldChange = self.heightChanged
+        let collectionView = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
+        collectionView.registerClass(TopSiteCell.self, forCellWithReuseIdentifier: ASHorizontalScrollCellUX.TopSiteCellIdentifier)
+        collectionView.backgroundColor = ASHorizontalScrollCellUX.BackgroundColor
+        collectionView.showsHorizontalScrollIndicator = false
+        collectionView.pagingEnabled = true
+        return collectionView
+    }()
+
+    lazy private var pageControl: UIPageControl = {
+        let pageControl = UIPageControl()
+        pageControl.pageIndicatorTintColor = UIColor.grayColor()
+        pageControl.currentPageIndicatorTintColor = UIColor.darkGrayColor()
+        return pageControl
+    }()
+
+    weak var parentTableView: UITableView?
+
+    override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+
+        backgroundColor = UIColor(white: 1.0, alpha: 0.5)
+        contentView.addSubview(collectionView)
+        contentView.addSubview(pageControl)
+
+        collectionView.snp_makeConstraints { make in
+            make.edges.equalTo(contentView).priorityLow()
+        }
+
+        pageControl.snp_makeConstraints { make in
+            make.size.equalTo(CGSize(width: 30, height: 20))
+            make.top.equalTo(collectionView.snp_bottom).offset(-10)
+            make.centerX.equalTo(self.snp_centerX)
+        }
+
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
+        pageControl.numberOfPages = layout.numberOfPages
+        pageControl.hidden = pageControl.numberOfPages <= 1
+    }
+
+    func heightChanged(newHeight: Int) {
+        collectionView.snp_updateConstraints { make in
+            make.edges.equalTo(contentView).priorityLow()
+            make.height.equalTo(newHeight).priorityMedium()
+        }
+        self.layoutSubviews()
+        parentTableView?.reloadData()
+    }
+
+    func currentPageChanged(currentPage: Int) {
+        pageControl.currentPage = currentPage
+    }
+
+    func setDelegate(delegate: ASHorizontalScrollSource) {
+        collectionView.delegate = delegate
+        collectionView.dataSource = delegate
+        delegate.pageChangedHandler = currentPageChanged
+        dispatch_async(dispatch_get_main_queue()) {
+            self.collectionView.reloadData()
+        }
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
 // A modified version of http://stackoverflow.com/a/34167915
 class HorizontalFlowLayout: UICollectionViewLayout {
     var itemSize = CGSizeZero
@@ -116,7 +198,6 @@ class HorizontalFlowLayout: UICollectionViewLayout {
     var numberOfPages = 0
     var heightShouldChange: ((Int) -> ())?
 
-
     override func prepareLayout() {
         cellCount = self.collectionView!.numberOfItemsInSection(0)
         boundsSize = self.collectionView!.bounds.size
@@ -126,9 +207,21 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         return collectionViewSizeForRect(boundsSize)
     }
 
-    func collectionViewSizeForRect(contentSize: CGSize) -> CGSize {
+    func maxVerticalItemsCount() -> Int {
         let verticalItemsCount =  Int(floor(boundsSize.height / (itemSize.height + insets.top)))
+        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
+        return delegate.numberOfVerticalItems(verticalItemsCount)
+    }
+
+    func maxHorizontalItemsCount() -> Int {
         let horizontalItemsCount =  Int(floor(boundsSize.width / (itemSize.width + insets.left)))
+        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
+        return delegate.numberOfHorizontalItems(horizontalItemsCount)
+    }
+
+    func collectionViewSizeForRect(contentSize: CGSize) -> CGSize {
+        let verticalItemsCount = maxVerticalItemsCount()
+        let horizontalItemsCount = maxHorizontalItemsCount()
 
         // Take the number of cells and subtract its space in the view from the height. The left over space is the white space.
         // The left over space is then devided evenly into (n + 1) parts to figure out how much space should be inbetween a cell
@@ -180,13 +273,12 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         return true
     }
 
-
     func computeLayoutAttributesForCellAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes {
         let row = indexPath.row
         let bounds = self.collectionView!.bounds
 
-        let verticalItemsCount =  Int(floor(boundsSize.height / (itemSize.height + insets.top)))
-        let horizontalItemsCount =  Int(floor(boundsSize.width / (itemSize.width + insets.left)))
+        let verticalItemsCount = maxVerticalItemsCount()
+        let horizontalItemsCount = maxHorizontalItemsCount()
 
 
         let itemsPerPage = verticalItemsCount * horizontalItemsCount
@@ -207,94 +299,39 @@ class HorizontalFlowLayout: UICollectionViewLayout {
     }
 }
 
-struct ASHorizontalScrollCellUX {
-    static let TopSiteCellIdentifier = "TopSiteCell"
-    static let TopSiteItemSize = CGSize(width: 100, height: 100)
-    static let BackgroundColor = UIColor.whiteColor()
+/*
+    Defines the number of items to show in topsites for different size classes.
+*/
+struct ASTopSiteSourceUX {
+    static let verticalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 1, UIUserInterfaceSizeClass.Regular : 2]
+    static let horizontalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 3, UIUserInterfaceSizeClass.Regular : 5]
 }
 
-class ASHorizontalScrollCell: UITableViewCell {
-
-    lazy private var collectionView: UICollectionView = {
-        let layout  = HorizontalFlowLayout()
-        layout.itemSize = ASHorizontalScrollCellUX.TopSiteItemSize
-        layout.heightShouldChange = self.heightChanged
-        let collectionView = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
-        collectionView.registerClass(TopSiteCell.self, forCellWithReuseIdentifier: ASHorizontalScrollCellUX.TopSiteCellIdentifier)
-        collectionView.backgroundColor = ASHorizontalScrollCellUX.BackgroundColor
-        collectionView.showsHorizontalScrollIndicator = false
-        collectionView.pagingEnabled = true
-        return collectionView
-    }()
-
-    lazy private var pageControl: UIPageControl = {
-        let pageControl = UIPageControl()
-        pageControl.pageIndicatorTintColor = UIColor.grayColor()
-        pageControl.currentPageIndicatorTintColor = UIColor.darkGrayColor()
-        return pageControl
-    }()
-
-    override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-
-        backgroundColor = UIColor(white: 1.0, alpha: 0.5)
-        contentView.addSubview(collectionView)
-        contentView.addSubview(pageControl)
-
-        collectionView.snp_makeConstraints { make in
-            make.edges.equalTo(contentView).priorityLow()
-            make.height.equalTo(240).priorityMedium()
-        }
-
-        pageControl.snp_makeConstraints { make in
-            make.size.equalTo(CGSize(width: 30, height: 20))
-            make.top.equalTo(collectionView.snp_bottom).offset(-10)
-            make.centerX.equalTo(self.snp_centerX)
-        }
-
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
-        pageControl.numberOfPages = layout.numberOfPages
-        if pageControl.numberOfPages == 1 {
-            pageControl.hidden = true
-        }
-    }
-
-    func heightChanged(newHeight: Int) {
-        collectionView.snp_updateConstraints { make in
-            make.edges.equalTo(contentView).priorityLow()
-            make.height.equalTo(newHeight).priorityMedium()
-        }
-        self.layoutSubviews()
-    }
-
-    func currentPageChanged(currentPage: Int) {
-        pageControl.currentPage = currentPage
-    }
-
-    func setDelegate(delegate: ASHorizontalScrollSource) {
-        collectionView.delegate = delegate
-        collectionView.dataSource = delegate
-        delegate.pageChangedHandler = currentPageChanged
-        collectionView.reloadData()
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+protocol ASHorizontalScrollDelegate {
+    func numberOfVerticalItems(estimatedItems: Int) -> Int
+    func numberOfHorizontalItems(estimatedItems: Int) -> Int
 }
 
-
-
-
-class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollectionViewDataSource {
+class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalScrollDelegate {
 
     var content: [TopSiteItem] = []
     var urlPressedHandler: ((NSURL) -> Void)?
     var pageChangedHandler: ((Int) -> Void)?
+
+    // The current traits that define the parent ViewController. Used to determine how many rows/columns should be created.
+    var currentTraits: UITraitCollection!
+
+    /*
+        Size classes define how many items to show per row/column.
+    */
+    func numberOfVerticalItems(estimatedItems: Int) -> Int {
+        return ASTopSiteSourceUX.verticalItemsForTraitSizes[currentTraits.verticalSizeClass]!
+    }
+
+    func numberOfHorizontalItems(estimatedItems: Int) -> Int {
+        // An iPhone 5 in both landscape/portrait is considered compactWidth which means we need to let the layout determine how many items to show based on actual width.
+        return max(ASTopSiteSourceUX.horizontalItemsForTraitSizes[currentTraits.horizontalSizeClass]!, estimatedItems)
+    }
 
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
         return 1
@@ -303,6 +340,7 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return content.count
     }
+
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("TopSiteCell", forIndexPath: indexPath) as! TopSiteCell
