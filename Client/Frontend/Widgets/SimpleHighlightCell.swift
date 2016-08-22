@@ -172,7 +172,7 @@ class SimpleHighlightCell: UITableViewCell {
         }
         self.titleLabel.text = site.title.characters.count <= 1 ? site.url : site.title
         self.descriptionLabel.text = "Bookmarked"
-        self.statusIcon.image = UIImage(named: "bookmarked_passive")
+        self.statusIcon.image = UIImage(named: "context_bookmark")
         self.timeStamp.text = NSDate.fromMicrosecondTimestamp((site.latestVisit?.date)!).toRelativeTimeString()
     }
 }
