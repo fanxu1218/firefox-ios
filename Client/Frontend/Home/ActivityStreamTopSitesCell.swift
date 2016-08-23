@@ -151,7 +151,6 @@ class ASHorizontalScrollCell: UITableViewCell {
             make.top.equalTo(collectionView.snp_bottom).offset(-5)
             make.centerX.equalTo(self.snp_centerX)
         }
-
     }
 
     override func layoutSubviews() {
@@ -219,6 +218,7 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         return delegate.numberOfHorizontalItems(horizontalItemsCount)
     }
 
+
     func collectionViewSizeForRect(contentSize: CGSize) -> CGSize {
         let verticalItemsCount = maxVerticalItemsCount()
         let horizontalItemsCount = maxHorizontalItemsCount()
@@ -238,8 +238,11 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         }
 
         let itemsPerPage = verticalItemsCount * horizontalItemsCount
-        let numberOfItems = cellCount
+
+        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
+        let numberOfItems = delegate.collectionView(self.collectionView!, numberOfItemsInSection: 0)
         numberOfPages = Int(ceil(Double(numberOfItems) / Double(itemsPerPage)))
+
 
         insets = UIEdgeInsets(top: verticalInsets, left: horizontalInsets, bottom: verticalInsets, right: horizontalInsets)
 
@@ -311,6 +314,7 @@ struct ASTopSiteSourceUX {
 protocol ASHorizontalScrollDelegate {
     func numberOfVerticalItems(estimatedItems: Int) -> Int
     func numberOfHorizontalItems(estimatedItems: Int) -> Int
+    func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int
 }
 
 class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalScrollDelegate {
@@ -364,50 +368,3 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
     }
 }
 
-struct ASHeaderViewUX {
-    static let SeperatorColor =  UIColor(rgb: 0xedecea)
-    static let TextFont = DynamicFontHelper.defaultHelper.DefaultSmallFontBold
-    static let SeperatorHeight = 1
-    static let Insets: CGFloat = 20
-}
-
-class ASHeaderView: UIView {
-    lazy private var titleLabel: UILabel = {
-        let titleLabel = UILabel()
-        titleLabel.text = self.title
-        titleLabel.textColor = UIColor.grayColor()
-        titleLabel.font = ASHeaderViewUX.TextFont
-        return titleLabel
-    }()
-
-    var title: String = "" {
-        willSet(newTitle) {
-            titleLabel.text = newTitle
-        }
-    }
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-
-        addSubview(titleLabel)
-
-        titleLabel.snp_makeConstraints { make in
-            make.edges.equalTo(self).offset(UIEdgeInsets(top: 5, left: ASHeaderViewUX.Insets, bottom: 0, right: -ASHeaderViewUX.Insets))
-        }
-
-        let seperatorLine = UIView()
-        seperatorLine.backgroundColor = ASHeaderViewUX.SeperatorColor
-        addSubview(seperatorLine)
-        seperatorLine.snp_makeConstraints { make in
-            make.height.equalTo(ASHeaderViewUX.SeperatorHeight)
-            make.leading.equalTo(self.snp_leading)
-            make.trailing.equalTo(self.snp_trailing)
-            make.top.equalTo(self.snp_top)
-        }
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-}

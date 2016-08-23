@@ -9,13 +9,13 @@ import Storage
 import WebImage
 
 
+// MARK: -  Lifecycle
 struct ASPanelUX {
     static let backgroundColor = UIColor(white: 1.0, alpha: 0.5)
     static let topSitesCacheSize = 20
     static let historySize = 10
 }
 
-// Lifecycle
 class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     weak var homePanelDelegate: HomePanelDelegate? = nil
     let profile: Profile
@@ -43,52 +43,6 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     var topSites: [TopSiteItem] = []
     var history: [Site] = []
 
-    enum Section: Int {
-        case topSites
-        case history
-
-        static let count = 2
-
-        var title: String? {
-            switch self {
-                case .history: return "HIGHLIGHTS"
-                default: return nil
-            }
-        }
-
-        var headerHeight: CGFloat {
-            switch self {
-                case .history: return 40
-                default: return 0
-            }
-        }
-
-        var headerView: UIView? {
-            switch self {
-                case .history:
-                    let view = ASHeaderView()
-                    view.title = "HIGHLIGHTS"
-                    return view
-                default:
-                    return nil
-            }
-        }
-
-        var cellIdentifier: String {
-            switch self {
-                case .topSites: return "TopSite"
-                default: return "Cell"
-            }
-        }
-
-        init(at indexPath: NSIndexPath) {
-            self.init(rawValue: indexPath.section)!
-        }
-
-        init(_ section: Int) {
-            self.init(rawValue: section)!
-        }
-    }
 
     init(profile: Profile) {
         self.profile = profile
@@ -107,8 +61,6 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
         NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationPrivateDataClearedHistory, object: nil)
         NSNotificationCenter.defaultCenter().removeObserver(self, name: NotificationDynamicFontChanged, object: nil)
     }
-
-
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -132,8 +84,58 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
 
 }
 
+// MARK: -  Section management
+extension ActivityStreamPanel {
+    enum Section: Int {
+        case topSites
+        case history
 
-// Header Views
+        static let count = 2
+
+        var title: String? {
+            switch self {
+            case .history: return "Recent Activity"
+            default: return nil
+            }
+        }
+
+        var headerHeight: CGFloat {
+            switch self {
+            case .history: return 40
+            default: return 0
+            }
+        }
+
+        var headerView: UIView? {
+            switch self {
+            case .history:
+                let view = ASHeaderView()
+                view.title = "Recent Activity"
+                return view
+            default:
+                return nil
+            }
+        }
+
+        var cellIdentifier: String {
+            switch self {
+            case .topSites: return "TopSite"
+            default: return "Cell"
+            }
+        }
+
+        init(at indexPath: NSIndexPath) {
+            self.init(rawValue: indexPath.section)!
+        }
+
+        init(_ section: Int) {
+            self.init(rawValue: section)!
+        }
+    }
+
+}
+
+// MARK: -  Header Views
 extension ActivityStreamPanel {
 
     func tableView(tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
@@ -145,7 +147,7 @@ extension ActivityStreamPanel {
     }
 }
 
-// Tableview management
+// MARK: - Tableview management
 extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
 
     func numberOfSectionsInTableView(tableView: UITableView) -> Int {
@@ -208,7 +210,7 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
     }
 }
 
-// Data Management
+// MARK: - Data Management
 extension ActivityStreamPanel {
     /*
      Simple methods to fetch some data from the DB
@@ -276,11 +278,61 @@ extension ActivityStreamPanel {
     }
 }
 
-// HomePanel Protocol
+// MARK: - HomePanel Protocol
 extension ActivityStreamPanel: HomePanel {
 
     func endEditing() {
 
     }
 
+}
+
+// MARK: - Section Header View
+struct ASHeaderViewUX {
+    static let SeperatorColor =  UIColor(rgb: 0xedecea)
+    static let TextFont = DynamicFontHelper.defaultHelper.DefaultSmallFontBold
+    static let SeperatorHeight = 1
+    static let Insets: CGFloat = 20
+    static let TitleTopInset: CGFloat = 5
+}
+
+class ASHeaderView: UIView {
+    lazy private var titleLabel: UILabel = {
+        let titleLabel = UILabel()
+        titleLabel.text = self.title
+        titleLabel.textColor = UIColor.grayColor()
+        titleLabel.font = ASHeaderViewUX.TextFont
+        return titleLabel
+    }()
+
+    var title: String = "" {
+        willSet(newTitle) {
+            titleLabel.text = newTitle
+        }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        addSubview(titleLabel)
+
+        titleLabel.snp_makeConstraints { make in
+            make.edges.equalTo(self).offset(UIEdgeInsets(top: ASHeaderViewUX.TitleTopInset, left: ASHeaderViewUX.Insets, bottom: 0, right: -ASHeaderViewUX.Insets))
+        }
+
+        let seperatorLine = UIView()
+        seperatorLine.backgroundColor = ASHeaderViewUX.SeperatorColor
+        addSubview(seperatorLine)
+        seperatorLine.snp_makeConstraints { make in
+            make.height.equalTo(ASHeaderViewUX.SeperatorHeight)
+            make.leading.equalTo(self.snp_leading)
+            make.trailing.equalTo(self.snp_trailing)
+            make.top.equalTo(self.snp_top)
+        }
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
 }
