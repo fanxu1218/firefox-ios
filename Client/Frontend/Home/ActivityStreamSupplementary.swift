@@ -305,6 +305,7 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 struct ASTopSiteSourceUX {
     static let verticalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 1, UIUserInterfaceSizeClass.Regular : 2]
     static let horizontalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 3, UIUserInterfaceSizeClass.Regular : 5]
+    static let maxNumberOfPages = 2
 }
 
 protocol ASHorizontalScrollDelegate {
@@ -338,7 +339,9 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
     }
 
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return content.count
+        let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
+        let maxItems = layout.maxVerticalItemsCount() * layout.maxHorizontalItemsCount() * ASTopSiteSourceUX.maxNumberOfPages
+        return min(maxItems, self.content.count)
     }
 
 

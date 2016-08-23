@@ -11,6 +11,8 @@ import WebImage
 
 struct ASPanelUX {
     static let backgroundColor = UIColor(white: 1.0, alpha: 0.5)
+    static let topSitesCacheSize = 20
+    static let historySize = 10
 }
 
 // Lifecycle
@@ -35,7 +37,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
         return tableView
     }()
 
-    var topSiteHandler: ASHorizontalScrollSource!
+    var topSiteHandler = ASHorizontalScrollSource()
 
     //once things get fleshed out we can refactor and find a better home for these
     var topSites: [TopSiteItem] = []
@@ -92,6 +94,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
         self.profile = profile
         super.init(nibName: nil, bundle: nil)
 
+        self.profile.history.setTopSitesCacheSize(Int32(ASPanelUX.topSitesCacheSize))
         NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationFirefoxAccountChanged, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationProfileDidFinishSyncing, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationPrivateDataClearedHistory, object: nil)
@@ -113,9 +116,9 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        refreshTopSites(10)
+        refreshTopSites(ASPanelUX.topSitesCacheSize)
         
-        reloadRecentHistoryWithLimit(10)
+        reloadRecentHistoryWithLimit(ASPanelUX.historySize)
 
         view.addSubview(tableView)
         tableView.snp_makeConstraints { (make) in
@@ -124,10 +127,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     }
 
     override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
-        if let handler = self.topSiteHandler {
-            handler.currentTraits = self.traitCollection
-        }
-
+        self.topSiteHandler.currentTraits = self.traitCollection
     }
 
 }
@@ -155,7 +155,7 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch Section(section) {
             case .topSites:
-                if topSiteHandler != nil && !topSiteHandler.content.isEmpty {
+                if !topSiteHandler.content.isEmpty {
                     return 1
                 } else {
                     return 0
@@ -219,13 +219,13 @@ extension ActivityStreamPanel {
         case NotificationProfileDidFinishSyncing:
             // Only reload top sites if there the cache is dirty since the finish syncing
             // notification is fired everytime the user re-enters the app from the background.
-            self.profile.history.areTopSitesDirty(withLimit: 10) >>== { dirty in
+            self.profile.history.areTopSitesDirty(withLimit: ASPanelUX.topSitesCacheSize) >>== { dirty in
                 if dirty {
-                    self.refreshTopSites(10)
+                    self.refreshTopSites(ASPanelUX.topSitesCacheSize)
                 }
             }
         case NotificationFirefoxAccountChanged, NotificationPrivateDataClearedHistory, NotificationDynamicFontChanged:
-            self.refreshTopSites(10)
+            self.refreshTopSites(ASPanelUX.topSitesCacheSize)
         default:
             // no need to do anything at all
             print("Dont have this notification type")
@@ -256,7 +256,6 @@ extension ActivityStreamPanel {
                     }
                     return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: nil, siteURL: site.tileURL)
                 }
-                self.topSiteHandler = ASHorizontalScrollSource()
                 self.topSiteHandler.content = self.topSites
                 self.topSiteHandler.urlPressedHandler = self.showSiteWithURL
                 self.topSiteHandler.currentTraits = self.traitCollection
