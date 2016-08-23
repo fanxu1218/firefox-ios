@@ -241,6 +241,7 @@
 		39E65D271CA5B92000C63CE3 /* AsyncReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E65D261CA5B92000C63CE3 /* AsyncReducerTests.swift */; };
 		39E65D371CA5CB0E00C63CE3 /* AsyncReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E65D351CA5CAF200C63CE3 /* AsyncReducer.swift */; };
 		39F6D0701CD3B0770055D949 /* HomePageSettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F6D06F1CD3B0770055D949 /* HomePageSettingsUITests.swift */; };
+		3B0943811D6CC4FC004F24E1 /* FilledPageControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0943801D6CC4FC004F24E1 /* FilledPageControl.swift */; };
 		3B6889C51D66950E002AC85E /* UIImageColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6889C41D66950E002AC85E /* UIImageColors.swift */; };
 		3BB50E111D6274CD004B33DF /* ActivityStreamSupplementary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BB50E101D6274CD004B33DF /* ActivityStreamSupplementary.swift */; };
 		3BB50E201D627539004B33DF /* ActivityStreamPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BB50E1F1D627539004B33DF /* ActivityStreamPanel.swift */; };
@@ -1325,6 +1326,7 @@
 		39E65D261CA5B92000C63CE3 /* AsyncReducerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncReducerTests.swift; sourceTree = "<group>"; };
 		39E65D351CA5CAF200C63CE3 /* AsyncReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncReducer.swift; sourceTree = "<group>"; };
 		39F6D06F1CD3B0770055D949 /* HomePageSettingsUITests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomePageSettingsUITests.swift; sourceTree = "<group>"; };
+		3B0943801D6CC4FC004F24E1 /* FilledPageControl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FilledPageControl.swift; path = ThirdParty/FilledPageControl.swift; sourceTree = "<group>"; };
 		3B6889C41D66950E002AC85E /* UIImageColors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UIImageColors.swift; path = ThirdParty/UIImageColors.swift; sourceTree = "<group>"; };
 		3BB50E101D6274CD004B33DF /* ActivityStreamSupplementary.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ActivityStreamSupplementary.swift; sourceTree = "<group>"; };
 		3BB50E1F1D627539004B33DF /* ActivityStreamPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ActivityStreamPanel.swift; sourceTree = "<group>"; };
@@ -2194,6 +2196,7 @@
 				0B1C05D41A798B1F004C78B0 /* UIImageViewAligned */,
 				28CE842F1A1E571900576538 /* json.swift */,
 				3B6889C41D66950E002AC85E /* UIImageColors.swift */,
+				3B0943801D6CC4FC004F24E1 /* FilledPageControl.swift */,
 				7479B4ED1C5306A200DF000B /* Reachability.swift */,
 			);
 			name = "Third-Party Source";
@@ -4767,6 +4770,7 @@
 				7B31E6851CBC09DC00A57805 /* MenuPresentationAnimator.swift in Sources */,
 				744501F21D6277DD00BCD523 /* SimpleHighlightCell.swift in Sources */,
 				C4E3983D1D21F1E7004E89BA /* TopTabsViews.swift in Sources */,
+				3B0943811D6CC4FC004F24E1 /* FilledPageControl.swift in Sources */,
 				0BB5B2891AC0A2B90052877D /* Toolbar.swift in Sources */,
 				E6108FF91C84E91C005D25E8 /* BasePasscodeViewController.swift in Sources */,
 				E4CD9F2D1A6DC91200318571 /* TabLocationView.swift in Sources */,

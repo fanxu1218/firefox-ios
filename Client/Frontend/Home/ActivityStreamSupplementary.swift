@@ -126,10 +126,10 @@ class ASHorizontalScrollCell: UITableViewCell {
         return collectionView
     }()
 
-    lazy private var pageControl: UIPageControl = {
-        let pageControl = UIPageControl()
-        pageControl.pageIndicatorTintColor = UIColor.grayColor()
-        pageControl.currentPageIndicatorTintColor = UIColor.darkGrayColor()
+    lazy private var pageControl: FilledPageControl = {
+        let pageControl = FilledPageControl()
+        pageControl.tintColor = UIColor.grayColor()
+        pageControl.indicatorRadius = 3
         return pageControl
     }()
 
@@ -147,8 +147,8 @@ class ASHorizontalScrollCell: UITableViewCell {
         }
 
         pageControl.snp_makeConstraints { make in
-            make.size.equalTo(CGSize(width: 30, height: 20))
-            make.top.equalTo(collectionView.snp_bottom).offset(-10)
+            make.size.equalTo(CGSize(width: 30, height: 15))
+            make.top.equalTo(collectionView.snp_bottom).offset(-5)
             make.centerX.equalTo(self.snp_centerX)
         }
 
@@ -157,8 +157,8 @@ class ASHorizontalScrollCell: UITableViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
-        pageControl.numberOfPages = layout.numberOfPages
-        pageControl.hidden = pageControl.numberOfPages <= 1
+        pageControl.pageCount = layout.numberOfPages
+        pageControl.hidden = pageControl.pageCount <= 1
     }
 
     func heightChanged(newHeight: Int) {
@@ -170,8 +170,8 @@ class ASHorizontalScrollCell: UITableViewCell {
         parentTableView?.reloadData()
     }
 
-    func currentPageChanged(currentPage: Int) {
-        pageControl.currentPage = currentPage
+    func currentPageChanged(currentPage: CGFloat) {
+        pageControl.progress = currentPage
     }
 
     func setDelegate(delegate: ASHorizontalScrollSource) {
@@ -317,7 +317,7 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
 
     var content: [TopSiteItem] = []
     var urlPressedHandler: ((NSURL) -> Void)?
-    var pageChangedHandler: ((Int) -> Void)?
+    var pageChangedHandler: ((CGFloat) -> Void)?
 
     // The current traits that define the parent ViewController. Used to determine how many rows/columns should be created.
     var currentTraits: UITraitCollection!
@@ -360,7 +360,7 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
 
     func scrollViewDidScroll(scrollView: UIScrollView) {
         let pageWidth = CGRectGetWidth(scrollView.frame)
-        pageChangedHandler?(Int(scrollView.contentOffset.x / pageWidth))
+        pageChangedHandler?(scrollView.contentOffset.x / pageWidth)
     }
 }
 
