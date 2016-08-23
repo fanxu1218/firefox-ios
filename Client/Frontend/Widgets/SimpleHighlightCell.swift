@@ -42,11 +42,11 @@ class SimpleHighlightCell: UITableViewCell {
 
     lazy var titleLabel: UILabel = {
         let titleLabel = UILabel()
-        titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
+//        titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontMediumBold
         titleLabel.textColor = SimpleHighlightCellUX.LabelColor
         titleLabel.textAlignment = SimpleHighlightCellUX.LabelAlignment
-        titleLabel.numberOfLines = 0
+        titleLabel.numberOfLines = 3
         return titleLabel
     }()
 
@@ -126,7 +126,7 @@ class SimpleHighlightCell: UITableViewCell {
 
         titleLabel.snp_remakeConstraints { make in
             make.leading.equalTo(siteImageView.snp_trailing).offset(12)
-            make.trailing.equalTo(timeStamp.snp_leading).offset(15)
+            make.trailing.equalTo(contentView).inset(20)
             make.top.equalTo(siteImageView)
         }
 
