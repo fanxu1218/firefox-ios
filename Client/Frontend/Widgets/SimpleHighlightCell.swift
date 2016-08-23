@@ -46,7 +46,7 @@ class SimpleHighlightCell: UITableViewCell {
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontMediumBold
         titleLabel.textColor = SimpleHighlightCellUX.LabelColor
         titleLabel.textAlignment = SimpleHighlightCellUX.LabelAlignment
-        titleLabel.numberOfLines = 2
+        titleLabel.numberOfLines = 0
         return titleLabel
     }()
 
