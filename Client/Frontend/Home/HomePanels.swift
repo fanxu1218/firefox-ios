@@ -4,6 +4,7 @@
 
 import Foundation
 import UIKit
+import Shared
 
 /**
  * Data for identifying and constructing a HomePanel.
@@ -19,14 +20,11 @@ class HomePanels {
     let enabledPanels = [
         HomePanelDescriptor(
             makeViewController: { profile in
-                ActivityStreamPanel(profile: profile)
-            },
-            imageName: "TopSites",
-            accessibilityLabel: NSLocalizedString("Top sites", comment: "Panel accessibility label"),
-            accessibilityIdentifier: "HomePanels.AStream"),
-        HomePanelDescriptor(
-            makeViewController: { profile in
-                TopSitesPanel(profile: profile)
+                if UIDevice.currentDevice().userInterfaceIdiom != .Pad && AppConstants.MOZ_AS_PANEL {
+                    return ActivityStreamPanel(profile: profile)
+                } else {
+                    return TopSitesPanel(profile: profile)
+                }
             },
             imageName: "TopSites",
             accessibilityLabel: NSLocalizedString("Top sites", comment: "Panel accessibility label"),

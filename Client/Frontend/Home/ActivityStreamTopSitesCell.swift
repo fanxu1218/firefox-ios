@@ -141,6 +141,7 @@ class ASHorizontalScrollCell: UITableViewCell {
         let pageControl = FilledPageControl()
         pageControl.tintColor = UIColor.grayColor()
         pageControl.indicatorRadius = ASHorizontalScrollCellUX.PageControlRadius
+        pageControl.userInteractionEnabled = false
         return pageControl
     }()
 
