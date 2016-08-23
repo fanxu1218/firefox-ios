@@ -113,14 +113,14 @@ class SimpleHighlightCell: UITableViewCell {
         contentView.addSubview(timeStamp)
         contentView.addSubview(statusIcon)
 
-        siteImageView.snp_makeConstraints { make in
+        siteImageView.snp_remakeConstraints { make in
             make.top.equalTo(contentView).offset(12)
             make.bottom.equalTo(contentView).offset(-12).priorityLow()
             make.leading.equalTo(contentView).offset(20)
             make.size.equalTo(48)
         }
 
-        selectedOverlay.snp_makeConstraints { make in
+        selectedOverlay.snp_remakeConstraints { make in
             make.edges.equalTo(contentView)
         }
 
@@ -130,22 +130,27 @@ class SimpleHighlightCell: UITableViewCell {
             make.top.equalTo(siteImageView)
         }
 
-        descriptionLabel.snp_makeConstraints { make in
+        descriptionLabel.snp_remakeConstraints { make in
             make.leading.equalTo(statusIcon.snp_trailing).offset(10)
             make.bottom.equalTo(statusIcon)
         }
 
-        timeStamp.snp_makeConstraints { make in
+        timeStamp.snp_remakeConstraints { make in
             make.trailing.equalTo(contentView).inset(20)
             make.bottom.equalTo(descriptionLabel)
         }
 
-        statusIcon.snp_makeConstraints { make in
+        statusIcon.snp_remakeConstraints { make in
             make.leading.equalTo(titleLabel)
             make.top.equalTo(titleLabel.snp_bottom).offset(12)
             make.size.equalTo(12)
             make.bottom.equalTo(contentView).offset(-16).priorityHigh()
         }
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        self.layoutIfNeeded()
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -171,8 +176,17 @@ class SimpleHighlightCell: UITableViewCell {
             self.siteImageView.layer.borderWidth = 0.5
         }
         self.titleLabel.text = site.title.characters.count <= 1 ? site.url : site.title
-        self.descriptionLabel.text = "Bookmarked"
-        self.statusIcon.image = UIImage(named: "context_bookmark")
+        configureCellStatus(site)
         self.timeStamp.text = NSDate.fromMicrosecondTimestamp((site.latestVisit?.date)!).toRelativeTimeString()
+    }
+
+    func configureCellStatus(site: Site) {
+        if let bookmarked = site.bookmarked {
+            self.descriptionLabel.text = "Bookmarked"
+            self.statusIcon.image = UIImage(named: "context_bookmark")
+        } else {
+            self.descriptionLabel.text = "Visited"
+            self.statusIcon.image = UIImage(named: "context_viewed")
+        }
     }
 }
