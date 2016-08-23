@@ -212,9 +212,6 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
 
 // MARK: - Data Management
 extension ActivityStreamPanel {
-    /*
-     Simple methods to fetch some data from the DB
-     */
 
     func notificationReceived(notification: NSNotification) {
         switch notification.name {
@@ -259,7 +256,9 @@ extension ActivityStreamPanel {
                     return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: nil, siteURL: site.tileURL)
                 }
                 self.topSiteHandler.content = self.topSites
-                self.topSiteHandler.urlPressedHandler = self.showSiteWithURL
+                self.topSiteHandler.urlPressedHandler = { [unowned self] url in
+                    self.showSiteWithURL(url)
+                }
                 self.topSiteHandler.currentTraits = self.traitCollection
                 self.tableView.reloadData()
             }

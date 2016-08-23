@@ -17,6 +17,9 @@ struct TopSiteCellUX {
     static let CellCornerRadius: CGFloat = 4
 }
 
+/*
+ *  The TopSite cell that appears in the ASHorizontalScrollView.
+*/
 class TopSiteCell: UICollectionViewCell {
 
     lazy private var imageView: UIImageView = {
@@ -110,14 +113,22 @@ struct ASHorizontalScrollCellUX {
     static let TopSiteCellIdentifier = "TopSiteCell"
     static let TopSiteItemSize = CGSize(width: 100, height: 100)
     static let BackgroundColor = UIColor.whiteColor()
+    static let PageControlRadius: CGFloat = 3
+    static let PageControlSize = CGSize(width: 30, height: 15)
+    static let PageControlOffset = -5
 }
 
+/*
+ The View that describes the topSite cell that appears in the tableView.
+ */
 class ASHorizontalScrollCell: UITableViewCell {
 
     lazy private var collectionView: UICollectionView = {
         let layout  = HorizontalFlowLayout()
         layout.itemSize = ASHorizontalScrollCellUX.TopSiteItemSize
-        layout.heightShouldChange = self.heightChanged
+        layout.heightShouldChange = { [weak self] num in
+            self?.heightChanged(num)
+        }
         let collectionView = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
         collectionView.registerClass(TopSiteCell.self, forCellWithReuseIdentifier: ASHorizontalScrollCellUX.TopSiteCellIdentifier)
         collectionView.backgroundColor = ASHorizontalScrollCellUX.BackgroundColor
@@ -129,7 +140,7 @@ class ASHorizontalScrollCell: UITableViewCell {
     lazy private var pageControl: FilledPageControl = {
         let pageControl = FilledPageControl()
         pageControl.tintColor = UIColor.grayColor()
-        pageControl.indicatorRadius = 3
+        pageControl.indicatorRadius = ASHorizontalScrollCellUX.PageControlRadius
         return pageControl
     }()
 
@@ -138,7 +149,7 @@ class ASHorizontalScrollCell: UITableViewCell {
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
 
-        backgroundColor = UIColor(white: 1.0, alpha: 0.5)
+        backgroundColor = ASHorizontalScrollCellUX.BackgroundColor
         contentView.addSubview(collectionView)
         contentView.addSubview(pageControl)
 
@@ -147,8 +158,8 @@ class ASHorizontalScrollCell: UITableViewCell {
         }
 
         pageControl.snp_makeConstraints { make in
-            make.size.equalTo(CGSize(width: 30, height: 15))
-            make.top.equalTo(collectionView.snp_bottom).offset(-5)
+            make.size.equalTo(ASHorizontalScrollCellUX.PageControlSize)
+            make.top.equalTo(collectionView.snp_bottom).offset(ASHorizontalScrollCellUX.PageControlOffset)
             make.centerX.equalTo(self.snp_centerX)
         }
     }
@@ -176,7 +187,9 @@ class ASHorizontalScrollCell: UITableViewCell {
     func setDelegate(delegate: ASHorizontalScrollSource) {
         collectionView.delegate = delegate
         collectionView.dataSource = delegate
-        delegate.pageChangedHandler = currentPageChanged
+        delegate.pageChangedHandler = { [weak self] progress in
+            self?.currentPageChanged(progress)
+        }
         dispatch_async(dispatch_get_main_queue()) {
             self.collectionView.reloadData()
         }
@@ -187,7 +200,11 @@ class ASHorizontalScrollCell: UITableViewCell {
     }
 }
 
-// A modified version of http://stackoverflow.com/a/34167915
+/*
+    A custom layout used to show a horizontal scrolling list with paging. Similar to iOS springboard.
+    A modified version of http://stackoverflow.com/a/34167915
+ */
+
 class HorizontalFlowLayout: UICollectionViewLayout {
     var itemSize = CGSizeZero
     private var cellCount = 0
@@ -217,7 +234,6 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
         return delegate.numberOfHorizontalItems(horizontalItemsCount)
     }
-
 
     func collectionViewSizeForRect(contentSize: CGSize) -> CGSize {
         let verticalItemsCount = maxVerticalItemsCount()
@@ -316,6 +332,11 @@ protocol ASHorizontalScrollDelegate {
     func numberOfHorizontalItems(estimatedItems: Int) -> Int
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int
 }
+
+/*
+ This Delegate/DataSource is used to manage the ASHorizontalScrollCell's UICollectionView. 
+ This is left generic enough for it to be re used for other parts of Activity Stream.
+ */
 
 class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalScrollDelegate {
 
