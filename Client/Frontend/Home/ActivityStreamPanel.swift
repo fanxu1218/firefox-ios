@@ -7,7 +7,9 @@ import UIKit
 import Deferred
 import Storage
 import WebImage
+import XCGLogger
 
+private let log = Logger.browserLogger
 
 // MARK: -  Lifecycle
 struct ASPanelUX {
@@ -16,9 +18,9 @@ struct ASPanelUX {
     static let historySize = 10
 }
 
-class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
+class ActivityStreamPanel: UIViewController {
     weak var homePanelDelegate: HomePanelDelegate? = nil
-    let profile: Profile
+    private let profile: Profile
 
     lazy private var tableView: UITableView = {
         let tableView = UITableView(frame: CGRect.zero, style: .Grouped)
@@ -37,7 +39,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
         return tableView
     }()
 
-    var topSiteHandler = ASHorizontalScrollSource()
+    private let topSiteHandler = ASHorizontalScrollSource()
 
     //once things get fleshed out we can refactor and find a better home for these
     var topSites: [TopSiteItem] = []
@@ -68,9 +70,9 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        refreshTopSites(ASPanelUX.topSitesCacheSize)
-        
-        reloadRecentHistoryWithLimit(ASPanelUX.historySize)
+        reloadTopSites()
+
+        reloadRecentHistory()
 
         view.addSubview(tableView)
         tableView.snp_makeConstraints { (make) in
@@ -79,6 +81,7 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
     }
 
     override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
         self.topSiteHandler.currentTraits = self.traitCollection
     }
 
@@ -87,40 +90,47 @@ class ActivityStreamPanel: UIViewController, UICollectionViewDelegate {
 // MARK: -  Section management
 extension ActivityStreamPanel {
     enum Section: Int {
-        case topSites
-        case history
+        case TopSites
+        case History
 
         static let count = 2
 
         var title: String? {
             switch self {
-            case .history: return "Recent Activity"
-            default: return nil
+            case .History: return "Recent Activity"
+            case .TopSites: return nil
             }
         }
 
         var headerHeight: CGFloat {
             switch self {
-            case .history: return 40
-            default: return 0
+            case .History: return 40
+            case .TopSites: return 0
+            }
+        }
+
+        var cellHeight: CGFloat {
+            switch self {
+            case .History: return UITableViewAutomaticDimension
+            case .TopSites: return 200
             }
         }
 
         var headerView: UIView? {
             switch self {
-            case .history:
+            case .History:
                 let view = ASHeaderView()
                 view.title = "Recent Activity"
                 return view
-            default:
+            case .TopSites:
                 return nil
             }
         }
 
         var cellIdentifier: String {
             switch self {
-            case .topSites: return "TopSite"
-            default: return "Cell"
+            case .TopSites: return "TopSite"
+            case .History: return "Cell"
             }
         }
 
@@ -135,8 +145,8 @@ extension ActivityStreamPanel {
 
 }
 
-// MARK: -  Header Views
-extension ActivityStreamPanel {
+// MARK: -  Tableview Delegate
+extension ActivityStreamPanel: UITableViewDelegate {
 
     func tableView(tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return Section(section).headerHeight
@@ -145,10 +155,30 @@ extension ActivityStreamPanel {
     func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return Section(section).headerView
     }
+
+//    func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
+//        return Section(indexPath.section).cellHeight
+//    }
+
+    func showSiteWithURL(url: NSURL) {
+        let visitType = VisitType.Bookmark
+        homePanelDelegate?.homePanel(self, didSelectURL: url, visitType: visitType)
+    }
+
+    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        switch Section(indexPath.section) {
+        case .History:
+            let site = self.history[indexPath.row]
+            showSiteWithURL(NSURL(string:site.url)!)
+        case .TopSites:
+            return
+        } 
+    }
+
 }
 
-// MARK: - Tableview management
-extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
+// MARK: - Tableview Data Source
+extension ActivityStreamPanel: UITableViewDataSource {
 
     func numberOfSectionsInTableView(tableView: UITableView) -> Int {
         return Section.count
@@ -156,13 +186,9 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
 
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch Section(section) {
-            case .topSites:
-                if !topSiteHandler.content.isEmpty {
-                    return 1
-                } else {
-                    return 0
-                }
-            case .history:
+            case .TopSites:
+                return topSiteHandler.content.isEmpty ? 0 : 1
+            case .History:
                  return self.history.count
         }
     }
@@ -172,18 +198,24 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
         let cell = tableView.dequeueReusableCellWithIdentifier(identifier, forIndexPath: indexPath)
 
         switch Section(indexPath.section) {
-            case .topSites:
-                return configureTopSitesCell(cell, forIndexPath: indexPath)
-            default:
-                return configureHistoryItemCell(cell, forIndexPath: indexPath)
+        case .TopSites:
+            return configureTopSitesCell(cell, forIndexPath: indexPath)
+        case .History:
+            return configureHistoryItemCell(cell, forIndexPath: indexPath)
         }
     }
 
     func configureTopSitesCell(cell: UITableViewCell, forIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let topSiteCell = cell as! ASHorizontalScrollCell
-        // The topSiteCell needs a refrence to the tableview because it needs to alert the tableView to relayout once topsites finishes loading.
-        topSiteCell.parentTableView = self.tableView
+        topSiteCell.parentTableView = tableView
         topSiteCell.setDelegate(self.topSiteHandler)
+
+//            tableView.beginUpdates()
+//            tableView.endUpdates()
+//            tableView.reloadData()
+
+//        topSiteCell.layoutSubviews()
+
         return cell
     }
 
@@ -194,20 +226,6 @@ extension ActivityStreamPanel: UITableViewDelegate, UITableViewDataSource {
         return simpleHighlightCell
     }
 
-    func showSiteWithURL(url: NSURL) {
-        let visitType = VisitType.Bookmark
-        homePanelDelegate?.homePanel(self, didSelectURL: url, visitType: visitType)
-    }
-
-    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        switch Section(indexPath.section) {
-        case .history:
-            let site = self.history[indexPath.row]
-            showSiteWithURL(NSURL(string:site.url)!)
-        default:
-            return
-        }
-    }
 }
 
 // MARK: - Data Management
@@ -220,60 +238,58 @@ extension ActivityStreamPanel {
             // notification is fired everytime the user re-enters the app from the background.
             self.profile.history.areTopSitesDirty(withLimit: ASPanelUX.topSitesCacheSize) >>== { dirty in
                 if dirty {
-                    self.refreshTopSites(ASPanelUX.topSitesCacheSize)
+                    self.reloadTopSites()
                 }
             }
         case NotificationFirefoxAccountChanged, NotificationPrivateDataClearedHistory, NotificationDynamicFontChanged:
-            self.refreshTopSites(ASPanelUX.topSitesCacheSize)
+            self.reloadTopSites()
         default:
-            // no need to do anything at all
-            print("Dont have this notification type")
+            log.warning("Received unexpected notification \(notification.name)")
         }
     }
 
-    private func refreshTopSites(frecencyLimit: Int) {
-        dispatch_async(dispatch_get_main_queue()) {
-            // Reload right away with whatever is in the cache, then check to see if the cache is invalid.
-            // If it's invalid, invalidate the cache and requery. This allows us to always show results
-            // immediately while also loading up-to-date results asynchronously if needed.
-            self.reloadTopSitesWithLimit(frecencyLimit) >>> {
-                self.profile.history.updateTopSitesCacheIfInvalidated() >>== { dirty in
-                    if dirty {
-                        self.reloadTopSitesWithLimit(frecencyLimit)
-                    }
-                }
-            }
+    private func reloadRecentHistory() {
+        self.profile.history.getSitesByLastVisit(ASPanelUX.historySize).uponQueue(dispatch_get_main_queue()) { result in
+            self.history = result.successValue?.asArray() ?? self.history
+            self.tableView.reloadData()
         }
     }
 
-    private func reloadTopSitesWithLimit(limit: Int) -> Success {
-        return self.profile.history.getTopSitesWithLimit(limit).bindQueue(dispatch_get_main_queue()) { result in
-            if let data = result.successValue {
-                self.topSites = data.asArray().map { site in
-                    if let favURL = site.icon?.url {
-                        return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: NSURL(string: favURL)!, siteURL: site.tileURL)
-                    }
-                    return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: nil, siteURL: site.tileURL)
-                }
-                self.topSiteHandler.content = self.topSites
-                self.topSiteHandler.urlPressedHandler = { [unowned self] url in
-                    self.showSiteWithURL(url)
-                }
-                self.topSiteHandler.currentTraits = self.traitCollection
-                self.tableView.reloadData()
+    private func reloadTopSites() {
+        invalidateTopSites().uponQueue(dispatch_get_main_queue()) { result in
+            let sites = result.successValue ?? []
+            self.topSites = sites
+            self.topSiteHandler.content = self.topSites
+            self.topSiteHandler.urlPressedHandler = { [unowned self] url in
+                self.showSiteWithURL(url)
             }
-            return succeed()
+            self.topSiteHandler.currentTraits = self.traitCollection
+            self.tableView.reloadData()
         }
     }
 
-    private func reloadRecentHistoryWithLimit(limit: Int) -> Success {
-        return self.profile.history.getSitesByLastVisit(limit).bindQueue(dispatch_get_main_queue()) { result in
-            if let data = result.successValue {
-                self.history = data.asArray()
-                self.tableView.reloadData()
+    private func invalidateTopSites() -> Deferred<Maybe<[TopSiteItem]>> {
+        let frecencyLimit = ASPanelUX.topSitesCacheSize
+        return self.profile.history.updateTopSitesCacheIfInvalidated() >>== { dirty in
+            if dirty || self.topSites.isEmpty {
+                return self.profile.history.getTopSitesWithLimit(frecencyLimit) >>== { topSites in
+                    return deferMaybe(topSites.flatMap(self.siteToItem))
+                }
             }
-            return succeed()
+            return deferMaybe(self.topSites)
         }
+    }
+
+    private func siteToItem(site: Site?) -> TopSiteItem? {
+        guard let site = site else {
+            return nil
+        }
+
+        guard let faviconURL = site.icon?.url else {
+            return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: nil, siteURL: site.tileURL)
+        }
+
+        return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: NSURL(string: faviconURL)!, siteURL: site.tileURL)
     }
 }
 
