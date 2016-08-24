@@ -8,7 +8,7 @@ import Storage
 
 struct HighlightCellUX {
     static let BorderColor = UIColor.blackColor().colorWithAlphaComponent(0.1)
-    static let BorderWidth: CGFloat = 1
+    static let BorderWidth = CGFloat(0.5)
     static let LabelColor = UIAccessibilityDarkerSystemColorsEnabled() ? UIColor.blackColor() : UIColor(rgb: 0x353535)
     static let LabelBackgroundColor = UIColor(white: 1.0, alpha: 0.5)
     static let LabelAlignment: NSTextAlignment = .Left
@@ -79,7 +79,7 @@ class HighlightCell: UITableViewCell {
         textLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         textLabel.font = DynamicFontHelper.defaultHelper.DeviceFontDescriptionActivityStream
         textLabel.textColor = UIColor(colorString: "919191")
-        textLabel.textAlignment = SimpleHighlightCellUX.LabelAlignment
+        textLabel.textAlignment = .Left
         textLabel.numberOfLines = 1
         return textLabel
     }()

@@ -7,11 +7,16 @@ import Shared
 import Storage
 
 struct SimpleHighlightCellUX {
-    static let BorderColor = UIColor.blackColor().colorWithAlphaComponent(0.1)
-    static let BorderWidth: CGFloat = 1
     static let LabelColor = UIAccessibilityDarkerSystemColorsEnabled() ? UIColor.blackColor() : UIColor(rgb: 0x353535)
-    static let LabelBackgroundColor = UIColor(white: 1.0, alpha: 0.5)
-    static let LabelAlignment: NSTextAlignment = .Left
+    static let BorderWidth: CGFloat = CGFloat(0.5)
+    static let CellSideOffset = 20
+    static let AlternateBottomOffset = 16
+    static let TitleLabelOffset = 10
+    static let CellTopBottomOffset = 12
+    static let SiteImageViewSize = 48
+    static let StatusIconSize = 12
+    static let DescriptionLabelColor = UIColor(colorString: "919191")
+    static let TimestampColor = UIColor(colorString: "D4D4D4")
     static let SelectedOverlayColor = UIColor(white: 0.0, alpha: 0.25)
     static let PlaceholderImage = UIImage(named: "defaultTopSiteIcon")
     static let CornerRadius: CGFloat = 3
@@ -32,7 +37,6 @@ class SimpleHighlightCell: UITableViewCell {
                     siteImageView.layer.minificationFilter = kCAFilterNearest
                     siteImageView.layer.magnificationFilter = kCAFilterNearest
                 }
-
             } else {
                 siteImageView.image = SimpleHighlightCellUX.PlaceholderImage
                 siteImageView.contentMode = UIViewContentMode.Center
@@ -42,10 +46,9 @@ class SimpleHighlightCell: UITableViewCell {
 
     lazy var titleLabel: UILabel = {
         let titleLabel = UILabel()
-//        titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontMediumBold
         titleLabel.textColor = SimpleHighlightCellUX.LabelColor
-        titleLabel.textAlignment = SimpleHighlightCellUX.LabelAlignment
+        titleLabel.textAlignment = .Left
         titleLabel.numberOfLines = 3
         return titleLabel
     }()
@@ -54,8 +57,8 @@ class SimpleHighlightCell: UITableViewCell {
         let titleLabel = UILabel()
         titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontDescriptionActivityStream
-        titleLabel.textColor = UIColor(colorString: "919191")
-        titleLabel.textAlignment = SimpleHighlightCellUX.LabelAlignment
+        titleLabel.textColor = SimpleHighlightCellUX.DescriptionLabelColor
+        titleLabel.textAlignment = .Left
         titleLabel.numberOfLines = 1
         return titleLabel
     }()
@@ -64,7 +67,7 @@ class SimpleHighlightCell: UITableViewCell {
         let titleLabel = UILabel()
         titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontSmallActivityStream
-        titleLabel.textColor = UIColor(colorString: "D4D4D4")
+        titleLabel.textColor = SimpleHighlightCellUX.TimestampColor
         titleLabel.textAlignment = .Right
         return titleLabel
     }()
@@ -114,10 +117,10 @@ class SimpleHighlightCell: UITableViewCell {
         contentView.addSubview(statusIcon)
 
         siteImageView.snp_remakeConstraints { make in
-            make.top.equalTo(contentView).offset(12)
-            make.bottom.equalTo(contentView).offset(-12).priorityLow()
-            make.leading.equalTo(contentView).offset(20)
-            make.size.equalTo(48)
+            make.top.equalTo(contentView).offset(SimpleHighlightCellUX.CellTopBottomOffset)
+            make.bottom.equalTo(contentView).offset(-SimpleHighlightCellUX.CellTopBottomOffset).priorityLow()
+            make.leading.equalTo(contentView).offset(SimpleHighlightCellUX.CellSideOffset)
+            make.size.equalTo(SimpleHighlightCellUX.SiteImageViewSize)
         }
 
         selectedOverlay.snp_remakeConstraints { make in
@@ -125,32 +128,27 @@ class SimpleHighlightCell: UITableViewCell {
         }
 
         titleLabel.snp_remakeConstraints { make in
-            make.leading.equalTo(siteImageView.snp_trailing).offset(12)
-            make.trailing.equalTo(contentView).inset(20)
+            make.leading.equalTo(siteImageView.snp_trailing).offset(SimpleHighlightCellUX.CellTopBottomOffset)
+            make.trailing.equalTo(contentView).inset(SimpleHighlightCellUX.CellSideOffset)
             make.top.equalTo(siteImageView)
         }
 
         descriptionLabel.snp_remakeConstraints { make in
-            make.leading.equalTo(statusIcon.snp_trailing).offset(10)
+            make.leading.equalTo(statusIcon.snp_trailing).offset(SimpleHighlightCellUX.TitleLabelOffset)
             make.bottom.equalTo(statusIcon)
         }
 
         timeStamp.snp_remakeConstraints { make in
-            make.trailing.equalTo(contentView).inset(20)
+            make.trailing.equalTo(contentView).inset(SimpleHighlightCellUX.CellSideOffset)
             make.bottom.equalTo(descriptionLabel)
         }
 
         statusIcon.snp_remakeConstraints { make in
             make.leading.equalTo(titleLabel)
-            make.top.equalTo(titleLabel.snp_bottom).offset(12)
-            make.size.equalTo(12)
-            make.bottom.equalTo(contentView).offset(-16).priorityHigh()
+            make.top.equalTo(titleLabel.snp_bottom).offset(SimpleHighlightCellUX.CellTopBottomOffset)
+            make.size.equalTo(SimpleHighlightCellUX.StatusIconSize)
+            make.bottom.equalTo(contentView).offset(-SimpleHighlightCellUX.AlternateBottomOffset).priorityHigh()
         }
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        self.layoutIfNeeded()
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -171,9 +169,9 @@ class SimpleHighlightCell: UITableViewCell {
         if let icon = site.icon {
             let url = icon.url
             self.setImageWithURL(NSURL(string: url)!)
-        } else {
-            self.siteImage = FaviconFetcher.getDefaultFavicon(NSURL(string: site.url)!)
-            self.siteImageView.layer.borderWidth = 0.5
+        } else if let url = NSURL(string: site.url) {
+            self.siteImage = FaviconFetcher.getDefaultFavicon(url)
+            self.siteImageView.layer.borderWidth = SimpleHighlightCellUX.BorderWidth
         }
         self.titleLabel.text = site.title.characters.count <= 1 ? site.url : site.title
         configureCellStatus(site)
@@ -181,7 +179,7 @@ class SimpleHighlightCell: UITableViewCell {
     }
 
     func configureCellStatus(site: Site) {
-        if let bookmarked = site.bookmarked {
+        if let bookmarked = site.bookmarked where bookmarked {
             self.descriptionLabel.text = "Bookmarked"
             self.statusIcon.image = UIImage(named: "context_bookmark")
         } else {
