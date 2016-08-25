@@ -220,7 +220,7 @@ extension ActivityStreamPanel: UITableViewDataSource {
     func configureHistoryItemCell(cell: UITableViewCell, forIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let simpleHighlightCell = cell as! SimpleHighlightCell
         let site = history[indexPath.row]
-        simpleHighlightCell.configureSimpleHighlightCell(site)
+        simpleHighlightCell.configureWithSite(site)
         return simpleHighlightCell
     }
 

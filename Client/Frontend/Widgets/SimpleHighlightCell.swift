@@ -55,7 +55,6 @@ class SimpleHighlightCell: UITableViewCell {
 
     lazy var descriptionLabel: UILabel = {
         let titleLabel = UILabel()
-        titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontDescriptionActivityStream
         titleLabel.textColor = SimpleHighlightCellUX.DescriptionLabelColor
         titleLabel.textAlignment = .Left
@@ -65,7 +64,6 @@ class SimpleHighlightCell: UITableViewCell {
 
     lazy var timeStamp: UILabel = {
         let titleLabel = UILabel()
-        titleLabel.setContentHuggingPriority(1000, forAxis: UILayoutConstraintAxis.Vertical)
         titleLabel.font = DynamicFontHelper.defaultHelper.DeviceFontSmallActivityStream
         titleLabel.textColor = SimpleHighlightCellUX.TimestampColor
         titleLabel.textAlignment = .Right
@@ -165,7 +163,13 @@ class SimpleHighlightCell: UITableViewCell {
         siteImageView.layer.masksToBounds = true
     }
 
-    func configureSimpleHighlightCell(site: Site) {
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        self.siteImage = nil
+        self.timeStamp.text = nil
+    }
+
+    func configureWithSite(site: Site) {
         if let icon = site.icon {
             let url = icon.url
             self.siteImageView.layer.borderWidth = 0
@@ -176,7 +180,9 @@ class SimpleHighlightCell: UITableViewCell {
         }
         self.titleLabel.text = site.title.characters.count <= 1 ? site.url : site.title
         configureCellStatus(site)
-        self.timeStamp.text = NSDate.fromMicrosecondTimestamp((site.latestVisit?.date)!).toRelativeTimeConciseString()
+        if let date = site.latestVisit?.date {
+            self.timeStamp.text = NSDate.fromMicrosecondTimestamp(date).toRelativeTimeConciseString()
+        }
     }
 
     func configureCellStatus(site: Site) {
