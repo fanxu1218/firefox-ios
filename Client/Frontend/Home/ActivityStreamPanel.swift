@@ -16,6 +16,8 @@ struct ASPanelUX {
     static let backgroundColor = UIColor(white: 1.0, alpha: 0.5)
     static let topSitesCacheSize = 20
     static let historySize = 10
+    static let TopSiteSingleRowHeight: CGFloat = 120
+    static let TopSiteDoubleRowHeight: CGFloat = 220
 }
 
 class ActivityStreamPanel: UIViewController {
@@ -89,6 +91,7 @@ class ActivityStreamPanel: UIViewController {
 
 // MARK: -  Section management
 extension ActivityStreamPanel {
+
     enum Section: Int {
         case TopSites
         case History
@@ -109,10 +112,16 @@ extension ActivityStreamPanel {
             }
         }
 
-        var cellHeight: CGFloat {
+        func cellHeight(traits: UITraitCollection) -> CGFloat {
             switch self {
             case .History: return UITableViewAutomaticDimension
-            case .TopSites: return 200
+            case .TopSites:
+                if traits.horizontalSizeClass == .Compact && traits.verticalSizeClass == .Regular {
+                    return ASPanelUX.TopSiteDoubleRowHeight
+                }
+                else {
+                    return ASPanelUX.TopSiteSingleRowHeight
+                }
             }
         }
 
@@ -155,10 +164,10 @@ extension ActivityStreamPanel: UITableViewDelegate {
     func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return Section(section).headerView
     }
-
-//    func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-//        return Section(indexPath.section).cellHeight
-//    }
+//
+    func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
+        return Section(indexPath.section).cellHeight(self.traitCollection)
+    }
 
     func showSiteWithURL(url: NSURL) {
         let visitType = VisitType.Bookmark
@@ -207,15 +216,7 @@ extension ActivityStreamPanel: UITableViewDataSource {
 
     func configureTopSitesCell(cell: UITableViewCell, forIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let topSiteCell = cell as! ASHorizontalScrollCell
-        topSiteCell.parentTableView = tableView
-        topSiteCell.setDelegate(self.topSiteHandler)
-
-//            tableView.beginUpdates()
-//            tableView.endUpdates()
-//            tableView.reloadData()
-
-//        topSiteCell.layoutSubviews()
-
+        topSiteCell.delegate = self.topSiteHandler
         return cell
     }
 

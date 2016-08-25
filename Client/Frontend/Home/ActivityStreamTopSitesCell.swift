@@ -160,20 +160,18 @@ class ASHorizontalScrollCell: UITableViewCell {
         return pageControl
     }()
 
-    weak var parentTableView: UITableView?
-//    weak var delegate: ASHorizontalScrollSource? {
-//        didSet {
-//            collectionView.delegate = delegate
-//            collectionView.dataSource = delegate
-//            delegate!.pageChangedHandler = { [weak self] progress in
-//                self?.currentPageChanged(progress)
-//            }
-//            dispatch_async(dispatch_get_main_queue()) {
-//                            self.collectionView.reloadData()
-//                        }
-//
-//        }
-//    }
+    weak var delegate: ASHorizontalScrollSource? {
+        didSet {
+            collectionView.delegate = delegate
+            collectionView.dataSource = delegate
+            delegate!.pageChangedHandler = { [weak self] progress in
+                self?.currentPageChanged(progress)
+            }
+            dispatch_async(dispatch_get_main_queue()) {
+                self.collectionView.reloadData()
+            }
+        }
+    }
 
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -195,23 +193,11 @@ class ASHorizontalScrollCell: UITableViewCell {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        
         let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
+
         pageControl.pageCount = layout.numberOfPages
         pageControl.hidden = pageControl.pageCount <= 1
     }
-
-   func setDelegate(delegate: ASHorizontalScrollSource) {
-           collectionView.delegate = delegate
-               collectionView.dataSource = delegate
-               delegate.pageChangedHandler = { [weak self] progress in
-                   self?.currentPageChanged(progress)
-               }
-               dispatch_async(dispatch_get_main_queue()) {
-            self.collectionView.reloadData()
-               }
-}
-
 
     func heightChanged(newHeight: Int) {
         collectionView.snp_updateConstraints { make in
@@ -219,7 +205,6 @@ class ASHorizontalScrollCell: UITableViewCell {
             make.height.equalTo(newHeight).priorityMedium()
         }
         self.layoutSubviews()
-        parentTableView?.reloadData()
     }
 
     func currentPageChanged(currentPage: CGFloat) {
@@ -257,14 +242,20 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 
     func maxVerticalItemsCount() -> Int {
         let verticalItemsCount =  Int(floor(boundsSize.height / (itemSize.height + insets.top)))
-        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
-        return delegate.numberOfVerticalItems(verticalItemsCount)
+        if let delegate = self.collectionView?.delegate as? ASHorizontalScrollDelegate {
+            return delegate.numberOfVerticalItems(verticalItemsCount)
+        } else {
+            return verticalItemsCount
+        }
     }
 
     func maxHorizontalItemsCount() -> Int {
         let horizontalItemsCount =  Int(floor(boundsSize.width / (itemSize.width + insets.left)))
-        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
-        return delegate.numberOfHorizontalItems(horizontalItemsCount)
+        if let delegate = self.collectionView?.delegate as? ASHorizontalScrollDelegate {
+            return delegate.numberOfHorizontalItems(horizontalItemsCount)
+        } else {
+            return horizontalItemsCount
+        }
     }
     func collectionViewSizeForRect(contentSize: CGSize) -> CGSize {
         let horizontalItemsCount = maxHorizontalItemsCount()
@@ -287,9 +278,9 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 
         let itemsPerPage = verticalItemsCount * horizontalItemsCount
 
-        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
-        let numberOfItems = delegate.collectionView(self.collectionView!, numberOfItemsInSection: 0)
-        numberOfPages = Int(ceil(Double(numberOfItems) / Double(itemsPerPage)))
+//        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
+//        let numberOfItems = delegate.collectionView(self.collectionView!, numberOfItemsInSection: 0)
+        numberOfPages = Int(ceil(Double(cellCount) / Double(itemsPerPage)))
 
 
         insets = UIEdgeInsets(top: verticalInsets, left: horizontalInsets, bottom: verticalInsets, right: horizontalInsets)
@@ -321,7 +312,11 @@ class HorizontalFlowLayout: UICollectionViewLayout {
     }
 
     override func shouldInvalidateLayoutForBoundsChange(newBounds: CGRect) -> Bool {
-        return true
+        if newBounds.width < 320 {
+            return false
+        } else {
+            return true
+        }
     }
 
     func computeLayoutAttributesForCellAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes {
