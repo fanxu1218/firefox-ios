@@ -40,19 +40,6 @@ class TopSiteCell: UICollectionViewCell {
         return titleLabel
     }()
 
-    lazy var selectedOverlay: UIView = {
-        let selectedOverlay = UIView()
-        selectedOverlay.backgroundColor = TopSiteCellUX.SelectedOverlayColor
-        selectedOverlay.hidden = true
-        return selectedOverlay
-    }()
-
-    override var selected: Bool {
-        didSet {
-            self.selectedOverlay.hidden = !selected
-        }
-    }
-
     override init(frame: CGRect) {
         super.init(frame: frame)
 
@@ -141,9 +128,6 @@ class ASHorizontalScrollCell: UITableViewCell {
     lazy private var collectionView: UICollectionView = {
         let layout  = HorizontalFlowLayout()
         layout.itemSize = ASHorizontalScrollCellUX.TopSiteItemSize
-        layout.heightShouldChange = { [weak self] num in
-            self?.heightChanged(num)
-        }
         let collectionView = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
         collectionView.registerClass(TopSiteCell.self, forCellWithReuseIdentifier: ASHorizontalScrollCellUX.TopSiteCellIdentifier)
         collectionView.backgroundColor = ASHorizontalScrollCellUX.BackgroundColor
@@ -199,14 +183,6 @@ class ASHorizontalScrollCell: UITableViewCell {
         pageControl.hidden = pageControl.pageCount <= 1
     }
 
-    func heightChanged(newHeight: Int) {
-        collectionView.snp_updateConstraints { make in
-            make.edges.equalTo(contentView).priorityLow()
-            make.height.equalTo(newHeight).priorityMedium()
-        }
-        self.layoutSubviews()
-    }
-
     func currentPageChanged(currentPage: CGFloat) {
         pageControl.progress = currentPage
     }
@@ -229,7 +205,6 @@ class HorizontalFlowLayout: UICollectionViewLayout {
     private var insets = UIEdgeInsetsZero
     private let minimumInsets: CGFloat = 20
     var numberOfPages = 0
-    var heightShouldChange: ((Int) -> ())?
 
     override func prepareLayout() {
         cellCount = self.collectionView!.numberOfItemsInSection(0)
@@ -286,12 +261,6 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         var size = contentSize
         size.width = CGFloat(numberOfPages) * contentSize.width
 
-        // When Cells are resized the amount of vertical space they need might change. Recalculate the height and layout the view again.
-        let newHeight = Int(verticalInsets) * (verticalItemsCount + 1) + Int(itemSize.height) * verticalItemsCount
-        if Int(size.height) != newHeight {
-            heightShouldChange?(newHeight)
-        }
-        
         return size
     }
 
@@ -328,7 +297,7 @@ class HorizontalFlowLayout: UICollectionViewLayout {
         let itemsPerPage = verticalItemsCount * horizontalItemsCount
 
         let columnPosition = row % horizontalItemsCount
-        let rowPosition = (row/horizontalItemsCount)%verticalItemsCount
+        let rowPosition = (row / horizontalItemsCount) % verticalItemsCount
         let itemPage = Int(floor(Double(row)/Double(itemsPerPage)))
 
         let attr = UICollectionViewLayoutAttributes(forCellWithIndexPath: indexPath)

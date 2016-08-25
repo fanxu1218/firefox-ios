@@ -43,10 +43,8 @@ class ActivityStreamPanel: UIViewController {
 
     private let topSiteHandler = ASHorizontalScrollSource()
 
-    //once things get fleshed out we can refactor and find a better home for these
     var topSites: [TopSiteItem] = []
     var history: [Site] = []
-
 
     init(profile: Profile) {
         self.profile = profile
@@ -163,7 +161,7 @@ extension ActivityStreamPanel: UITableViewDelegate {
     func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return Section(section).headerView
     }
-//
+
     func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
         return Section(indexPath.section).cellHeight(self.traitCollection)
     }
