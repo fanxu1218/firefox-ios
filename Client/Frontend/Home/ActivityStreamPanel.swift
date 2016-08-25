@@ -118,8 +118,7 @@ extension ActivityStreamPanel {
             case .TopSites:
                 if traits.horizontalSizeClass == .Compact && traits.verticalSizeClass == .Regular {
                     return ASPanelUX.TopSiteDoubleRowHeight
-                }
-                else {
+                } else {
                     return ASPanelUX.TopSiteSingleRowHeight
                 }
             }
