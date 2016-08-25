@@ -278,8 +278,6 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 
         let itemsPerPage = verticalItemsCount * horizontalItemsCount
 
-//        let delegate = self.collectionView?.delegate as! ASHorizontalScrollDelegate
-//        let numberOfItems = delegate.collectionView(self.collectionView!, numberOfItemsInSection: 0)
         numberOfPages = Int(ceil(Double(cellCount) / Double(itemsPerPage)))
 
 
