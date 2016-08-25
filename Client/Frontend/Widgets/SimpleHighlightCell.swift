@@ -168,6 +168,7 @@ class SimpleHighlightCell: UITableViewCell {
     func configureSimpleHighlightCell(site: Site) {
         if let icon = site.icon {
             let url = icon.url
+            self.siteImageView.layer.borderWidth = 0
             self.setImageWithURL(NSURL(string: url)!)
         } else if let url = NSURL(string: site.url) {
             self.siteImage = FaviconFetcher.getDefaultFavicon(url)
