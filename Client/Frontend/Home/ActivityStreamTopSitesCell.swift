@@ -356,7 +356,6 @@ struct ASTopSiteSourceUX {
 protocol ASHorizontalScrollDelegate {
     func numberOfVerticalItems(estimatedItems: Int) -> Int
     func numberOfHorizontalItems(estimatedItems: Int) -> Int
-    func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int
 }
 
 /*
