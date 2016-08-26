@@ -20,15 +20,14 @@ struct ASPanelUX {
     static let TopSiteDoubleRowHeight: CGFloat = 220
 }
 
-class ActivityStreamPanel: UIViewController {
+class ActivityStreamPanel: UIViewController, HomePanel {
     weak var homePanelDelegate: HomePanelDelegate? = nil
     private let profile: Profile
 
     lazy private var tableView: UITableView = {
         let tableView = UITableView(frame: CGRect.zero, style: .Grouped)
-        tableView.registerClass(SimpleHighlightCell.self, forCellReuseIdentifier: "Cell")
-        tableView.registerClass(ASHorizontalScrollCell.self, forCellReuseIdentifier: "TopSite")
-        tableView.registerClass(HighlightCell.self, forCellReuseIdentifier: "Highlight")
+        tableView.registerClass(SimpleHighlightCell.self, forCellReuseIdentifier: "HistoryCell")
+        tableView.registerClass(ASHorizontalScrollCell.self, forCellReuseIdentifier: "TopSiteCell")
         tableView.backgroundColor = ASPanelUX.backgroundColor
         tableView.separatorStyle = .None
         tableView.delegate = self
@@ -70,14 +69,13 @@ class ActivityStreamPanel: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        reloadTopSites()
-
-        reloadRecentHistory()
-
         view.addSubview(tableView)
         tableView.snp_makeConstraints { (make) in
             make.edges.equalTo(self.view)
         }
+
+        reloadTopSites()
+        reloadRecentHistory()
     }
 
     override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
@@ -135,8 +133,8 @@ extension ActivityStreamPanel {
 
         var cellIdentifier: String {
             switch self {
-            case .TopSites: return "TopSite"
-            case .History: return "Cell"
+            case .TopSites: return "TopSiteCell"
+            case .History: return "HistoryCell"
             }
         }
 
@@ -166,7 +164,7 @@ extension ActivityStreamPanel: UITableViewDelegate {
         return Section(indexPath.section).cellHeight(self.traitCollection)
     }
 
-    func showSiteWithURL(url: NSURL) {
+    private func showSiteWithURL(url: NSURL) {
         let visitType = VisitType.Bookmark
         homePanelDelegate?.homePanel(self, didSelectURL: url, visitType: visitType)
     }
@@ -231,15 +229,7 @@ extension ActivityStreamPanel {
 
     func notificationReceived(notification: NSNotification) {
         switch notification.name {
-        case NotificationProfileDidFinishSyncing:
-            // Only reload top sites if there the cache is dirty since the finish syncing
-            // notification is fired everytime the user re-enters the app from the background.
-            self.profile.history.areTopSitesDirty(withLimit: ASPanelUX.topSitesCacheSize) >>== { dirty in
-                if dirty {
-                    self.reloadTopSites()
-                }
-            }
-        case NotificationFirefoxAccountChanged, NotificationPrivateDataClearedHistory, NotificationDynamicFontChanged:
+        case NotificationProfileDidFinishSyncing, NotificationFirefoxAccountChanged, NotificationPrivateDataClearedHistory, NotificationDynamicFontChanged:
             self.reloadTopSites()
         default:
             log.warning("Received unexpected notification \(notification.name)")
@@ -289,15 +279,6 @@ extension ActivityStreamPanel {
 
         return TopSiteItem(urlTitle: site.tileURL.extractDomainName(), faviconURL: NSURL(string: faviconURL)!, siteURL: site.tileURL)
     }
-}
-
-// MARK: - HomePanel Protocol
-extension ActivityStreamPanel: HomePanel {
-
-    func endEditing() {
-
-    }
-
 }
 
 // MARK: - Section Header View
