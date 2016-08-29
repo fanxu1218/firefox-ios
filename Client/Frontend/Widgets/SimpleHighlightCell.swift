@@ -181,7 +181,7 @@ class SimpleHighlightCell: UITableViewCell {
         self.titleLabel.text = site.title.characters.count <= 1 ? site.url : site.title
         configureCellStatus(site)
         if let date = site.latestVisit?.date {
-            self.timeStamp.text = NSDate.fromMicrosecondTimestamp(date).toRelativeTimeConciseString()
+            self.timeStamp.text = NSDate.fromMicrosecondTimestamp(date).toRelativeTimeString(true)
         }
     }
 

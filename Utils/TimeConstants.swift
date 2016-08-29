@@ -37,7 +37,7 @@ extension NSDate {
         return NSDate(timeIntervalSince1970: Double(microsecondTimestamp) / 1000000)
     }
 
-    public func toRelativeTimeString() -> String {
+    public func toRelativeTimeString(isConcise: Bool = false) -> String {
         let now = NSDate()
 
         let units: NSCalendarUnit = [NSCalendarUnit.Second, NSCalendarUnit.Minute, NSCalendarUnit.Day, NSCalendarUnit.WeekOfYear, NSCalendarUnit.Month, NSCalendarUnit.Year, NSCalendarUnit.Hour]
@@ -46,6 +46,32 @@ extension NSDate {
             fromDate: self,
             toDate: now,
             options: [])
+
+        if isConcise {
+            if components.year > 0 {
+                return NSLocalizedString("\(components.year) years ago", comment: "Concise date for date older than a year.")
+            }
+
+            if components.month > 1 {
+                return NSLocalizedString("\(components.month) months ago", comment: "Concise date for date older than a month.")
+            }
+
+            if components.weekOfYear > 0 {
+                return NSLocalizedString("\(components.weekOfYear) weeks ago", comment: "Concise date for date older than a week.")
+            }
+
+            if components.day > 1 {
+                return NSLocalizedString("\(components.day) days ago", comment: "Concise date for date older than a day.")
+            }
+
+            if components.hour > 0 {
+                return NSLocalizedString("\(components.hour) hours ago", comment: "Concise date for date older than a hour.")
+            }
+
+            if components.minute > 0 {
+                return NSLocalizedString("\(components.minute) mins ago", comment: "Concise date for date older than a minute.")
+            }
+        }
         
         if components.year > 0 {
             return String(format: NSDateFormatter.localizedStringFromDate(self, dateStyle: NSDateFormatterStyle.ShortStyle, timeStyle: NSDateFormatterStyle.ShortStyle))
@@ -77,43 +103,6 @@ extension NSDate {
             return String(format: format, absoluteTime)
         }
 
-        return String(format: NSLocalizedString("just now", comment: "Relative time for a tab that was visited within the last few moments."))
-    }
-
-    public func toRelativeTimeConciseString() -> String {
-        let now = NSDate()
-
-        let units: NSCalendarUnit = [NSCalendarUnit.Second, NSCalendarUnit.Minute, NSCalendarUnit.Day, NSCalendarUnit.WeekOfYear, NSCalendarUnit.Month, NSCalendarUnit.Year, NSCalendarUnit.Hour]
-
-        let components = NSCalendar.currentCalendar().components(units,
-                                                                 fromDate: self,
-                                                                 toDate: now,
-                                                                 options: [])
-
-        if components.year > 0 {
-            return NSLocalizedString("\(components.year) years ago", comment: "Relative date for date older than a minute.")
-        }
-
-        if components.month > 1 {
-            return NSLocalizedString("\(components.month) months ago", comment: "Relative date for date older than a minute.")
-        }
-
-        if components.weekOfYear > 0 {
-            return NSLocalizedString("\(components.weekOfYear) weeks ago", comment: "Relative date for date older than a minute.")
-        }
-
-        if components.day > 1 {
-            return NSLocalizedString("\(components.day) days ago", comment: "Relative date for date older than a minute.")
-        }
-
-        if components.hour > 0 {
-            return NSLocalizedString("\(components.hour) hours ago", comment: "Relative date for date older than a minute.")
-        }
-
-        if components.minute > 0 {
-            return NSLocalizedString("\(components.minute) mins ago", comment: "Relative date for date older than a minute.")
-        }
-        
         return String(format: NSLocalizedString("just now", comment: "Relative time for a tab that was visited within the last few moments."))
     }
 }
