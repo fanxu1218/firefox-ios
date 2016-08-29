@@ -20,26 +20,9 @@ struct ASPanelUX {
     static let TopSiteDoubleRowHeight: CGFloat = 220
 }
 
-class ActivityStreamPanel: UIViewController, HomePanel {
+class ActivityStreamPanel: UITableViewController, HomePanel {
     weak var homePanelDelegate: HomePanelDelegate? = nil
     private let profile: Profile
-
-    lazy private var tableView: UITableView = {
-        let tableView = UITableView(frame: CGRect.zero, style: .Grouped)
-        tableView.registerClass(SimpleHighlightCell.self, forCellReuseIdentifier: "HistoryCell")
-        tableView.registerClass(ASHorizontalScrollCell.self, forCellReuseIdentifier: "TopSiteCell")
-        tableView.backgroundColor = ASPanelUX.backgroundColor
-        tableView.separatorStyle = .None
-        tableView.delegate = self
-        tableView.dataSource = self
-        tableView.rowHeight = UITableViewAutomaticDimension
-        tableView.separatorInset = UIEdgeInsetsZero
-        tableView.estimatedRowHeight = 65
-        tableView.estimatedSectionHeaderHeight = 15
-        tableView.sectionHeaderHeight = UITableViewAutomaticDimension
-        return tableView
-    }()
-
     private let topSiteHandler = ASHorizontalScrollSource()
 
     var topSites: [TopSiteItem] = []
@@ -47,7 +30,7 @@ class ActivityStreamPanel: UIViewController, HomePanel {
 
     init(profile: Profile) {
         self.profile = profile
-        super.init(nibName: nil, bundle: nil)
+        super.init(style: .Grouped)
 
         self.profile.history.setTopSitesCacheSize(Int32(ASPanelUX.topSitesCacheSize))
         NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(TopSitesPanel.notificationReceived(_:)), name: NotificationFirefoxAccountChanged, object: nil)
@@ -69,10 +52,18 @@ class ActivityStreamPanel: UIViewController, HomePanel {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.addSubview(tableView)
-        tableView.snp_makeConstraints { (make) in
-            make.edges.equalTo(self.view)
-        }
+
+        tableView.registerClass(SimpleHighlightCell.self, forCellReuseIdentifier: "HistoryCell")
+        tableView.registerClass(ASHorizontalScrollCell.self, forCellReuseIdentifier: "TopSiteCell")
+        tableView.backgroundColor = ASPanelUX.backgroundColor
+        tableView.separatorStyle = .None
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.rowHeight = UITableViewAutomaticDimension
+        tableView.separatorInset = UIEdgeInsetsZero
+        tableView.estimatedRowHeight = 65
+        tableView.estimatedSectionHeaderHeight = 15
+        tableView.sectionHeaderHeight = UITableViewAutomaticDimension
 
         reloadTopSites()
         reloadRecentHistory()
@@ -150,17 +141,17 @@ extension ActivityStreamPanel {
 }
 
 // MARK: -  Tableview Delegate
-extension ActivityStreamPanel: UITableViewDelegate {
+extension ActivityStreamPanel {
 
-    func tableView(tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+    override func tableView(tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return Section(section).headerHeight
     }
 
-    func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    override func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         return Section(section).headerView
     }
 
-    func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
+    override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
         return Section(indexPath.section).cellHeight(self.traitCollection)
     }
 
@@ -169,7 +160,7 @@ extension ActivityStreamPanel: UITableViewDelegate {
         homePanelDelegate?.homePanel(self, didSelectURL: url, visitType: visitType)
     }
 
-    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         switch Section(indexPath.section) {
         case .History:
             let site = self.history[indexPath.row]
@@ -182,13 +173,13 @@ extension ActivityStreamPanel: UITableViewDelegate {
 }
 
 // MARK: - Tableview Data Source
-extension ActivityStreamPanel: UITableViewDataSource {
+extension ActivityStreamPanel {
 
-    func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
         return Section.count
     }
 
-    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch Section(section) {
             case .TopSites:
                 return topSiteHandler.content.isEmpty ? 0 : 1
@@ -197,7 +188,7 @@ extension ActivityStreamPanel: UITableViewDataSource {
         }
     }
 
-    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let identifier = Section(indexPath.section).cellIdentifier
         let cell = tableView.dequeueReusableCellWithIdentifier(identifier, forIndexPath: indexPath)
 
