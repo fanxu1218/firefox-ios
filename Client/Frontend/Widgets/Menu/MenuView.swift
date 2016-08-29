@@ -306,6 +306,10 @@ class MenuView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        layoutAll()
+    }
+
+    func layoutAll() {
         reloadDataIfNeeded()
         layoutToolbar()
         layoutMenu()

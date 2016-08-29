@@ -160,7 +160,17 @@ class MenuViewController: UIViewController {
 
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
+        relayoutMenuAndSetSize()
+    }
+
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        relayoutMenuAndSetSize()
+    }
+
+    private func relayoutMenuAndSetSize() {
         if presentationStyle == .Popover {
+            menuView.layoutAll()
             self.preferredContentSize = CGSizeMake(view.bounds.size.width, menuView.bounds.size.height)
         }
     }
