@@ -15,6 +15,7 @@ struct TopSiteCellUX {
     static let TitleFont = DynamicFontHelper.defaultHelper.DefaultSmallFont
     static let SelectedOverlayColor = UIColor(white: 0.0, alpha: 0.25)
     static let CellCornerRadius: CGFloat = 4
+    static let OverlayColor = UIColor(white: 0.0, alpha: 0.25)
 }
 
 /*
@@ -38,6 +39,19 @@ class TopSiteItemCell: UICollectionViewCell {
         return titleLabel
     }()
 
+    lazy var selectedOverlay: UIView = {
+        let selectedOverlay = UIView()
+        selectedOverlay.backgroundColor = TopSiteCellUX.OverlayColor
+        selectedOverlay.hidden = true
+        return selectedOverlay
+    }()
+
+    override var selected: Bool {
+        didSet {
+            self.selectedOverlay.hidden = !selected
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
 
@@ -46,10 +60,11 @@ class TopSiteItemCell: UICollectionViewCell {
 
         contentView.addSubview(titleLabel)
         contentView.addSubview(imageView)
+        contentView.addSubview(selectedOverlay)
 
         let heightInset = frame.height * TopSiteCellUX.TitleInsetPercent
         titleLabel.snp_makeConstraints { make in
-            make.edges.equalTo(self).inset(UIEdgeInsetsMake(heightInset, 0, 0, 0))
+            make.edges.equalTo(self).inset(UIEdgeInsets(top: heightInset, left: 0, bottom: 0, right: 0))
         }
 
         imageView.snp_makeConstraints { make in
@@ -58,6 +73,10 @@ class TopSiteItemCell: UICollectionViewCell {
             // Add an offset to the image to make it appear centered with the titleLabel
             let offset = self.frame.height - CGFloat(heightInset)
             make.center.equalTo(self.snp_center).offset(UIEdgeInsets(top: -offset/2, left: 0, bottom: 0, right: 0))
+        }
+
+        selectedOverlay.snp_remakeConstraints { make in
+            make.edges.equalTo(contentView)
         }
     }
 
@@ -83,18 +102,8 @@ class TopSiteItemCell: UICollectionViewCell {
             // Get dominant colors using a scaled 25/25 image.
             img.getColors(CGSize(width: 25, height: 25)) { colors in
                 //In cases where the background is white. Force the background color to a different color
-                var bgColor: UIColor
-                if colors.backgroundColor.isWhite {
-                    let colorArr = [colors.detailColor, colors.primaryColor].filter { !$0.isWhite }
-                    if colorArr.isEmpty {
-                        bgColor = UIColor.lightGrayColor()
-                    } else {
-                        bgColor = colorArr.first!
-                    }
-                } else {
-                    bgColor = colors.backgroundColor
-                }
-                self.contentView.backgroundColor = bgColor
+                let colorArr = [colors.backgroundColor, colors.detailColor, colors.primaryColor].filter { !$0.isWhite }
+                self.contentView.backgroundColor = colorArr.isEmpty ? UIColor.lightGrayColor() : colorArr.first
             }
         }
     }
@@ -363,7 +372,6 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier(ASTopSiteSourceUX.CellIdentifier, forIndexPath: indexPath) as! TopSiteItemCell
-
         let contentItem = content[indexPath.row]
         cell.configureWithTopSiteItem(contentItem)
         return cell
