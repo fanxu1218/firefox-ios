@@ -152,7 +152,7 @@ class ASHorizontalScrollCell: UITableViewCell {
         return pageControl
     }()
 
-    weak var delegate: ASHorizontalScrollSource? {
+    weak var delegate: ASHorizontalScrollCellManager? {
         didSet {
             collectionView.delegate = delegate
             collectionView.dataSource = delegate
@@ -251,8 +251,8 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 
     func maxVerticalItemsCount() -> Int {
         let verticalItemsCount =  Int(floor(boundsSize.height / (itemSize.height + insets.top)))
-        if let delegate = self.collectionView?.delegate as? ASHorizontalScrollDelegate {
-            return delegate.numberOfVerticalItems(verticalItemsCount)
+        if let delegate = self.collectionView?.delegate as? ASHorizontalLayoutDelegate {
+            return delegate.numberOfVerticalItems()
         } else {
             return verticalItemsCount
         }
@@ -260,8 +260,8 @@ class HorizontalFlowLayout: UICollectionViewLayout {
 
     func maxHorizontalItemsCount() -> Int {
         let horizontalItemsCount =  Int(floor(boundsSize.width / (itemSize.width + insets.left)))
-        if let delegate = self.collectionView?.delegate as? ASHorizontalScrollDelegate {
-            return delegate.numberOfHorizontalItems(horizontalItemsCount)
+        if let delegate = self.collectionView?.delegate as? ASHorizontalLayoutDelegate {
+            return delegate.numberOfHorizontalItems()
         } else {
             return horizontalItemsCount
         }
@@ -323,9 +323,9 @@ struct ASTopSiteSourceUX {
     static let CellIdentifier = "TopSiteItemCell"
 }
 
-protocol ASHorizontalScrollDelegate {
-    func numberOfVerticalItems(estimatedItems: Int) -> Int
-    func numberOfHorizontalItems(estimatedItems: Int) -> Int
+protocol ASHorizontalLayoutDelegate {
+    func numberOfVerticalItems() -> Int
+    func numberOfHorizontalItems() -> Int
 }
 
 /*
@@ -333,9 +333,25 @@ protocol ASHorizontalScrollDelegate {
  This is left generic enough for it to be re used for other parts of Activity Stream.
  */
 
-class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalScrollDelegate {
+class ASHorizontalScrollCellManager: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalLayoutDelegate {
 
-    var content: [TopSiteItem] = []
+    var _content = [TopSiteItem]()
+    var content: [TopSiteItem] {
+        get {
+            return _content
+        }
+        set(newValue) {
+            // We only want to display upto 2 pages of content. So trim the rest of the items.
+            let maxItems = numberOfVerticalItems() * numberOfHorizontalItems() * ASTopSiteSourceUX.maxNumberOfPages
+            if maxItems == 0 {
+                _content = newValue
+            }
+            _content = newValue.enumerate().flatMap {(idx, element) in
+                return idx >= maxItems ? nil : element
+            }
+        }
+    }
+
     var urlPressedHandler: ((NSURL) -> Void)?
     var pageChangedHandler: ((CGFloat) -> Void)?
 
@@ -343,19 +359,23 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
     var currentTraits: UITraitCollection?
 
     // Size classes define how many items to show per row/column.
-    func numberOfVerticalItems(estimatedItems: Int) -> Int {
+    func numberOfVerticalItems() -> Int {
         guard let traits = currentTraits else {
-            return estimatedItems
+            return 0
         }
+        //nil here how
         return ASTopSiteSourceUX.verticalItemsForTraitSizes[traits.verticalSizeClass]!
     }
 
-    func numberOfHorizontalItems(estimatedItems: Int) -> Int {
+    func numberOfHorizontalItems() -> Int {
         guard let traits = currentTraits else {
-            return estimatedItems
+            return 0
         }
         // An iPhone 5 in both landscape/portrait is considered compactWidth which means we need to let the layout determine how many items to show based on actual width.
-        return max(ASTopSiteSourceUX.horizontalItemsForTraitSizes[traits.horizontalSizeClass]!, estimatedItems)
+        if traits.horizontalSizeClass == .Compact && traits.verticalSizeClass == .Compact {
+            return ASTopSiteSourceUX.horizontalItemsForTraitSizes[.Regular]!
+        }
+        return ASTopSiteSourceUX.horizontalItemsForTraitSizes[traits.horizontalSizeClass]!
     }
 
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
@@ -363,11 +383,7 @@ class ASHorizontalScrollSource: NSObject, UICollectionViewDelegate, UICollection
     }
 
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        let layout = collectionView.collectionViewLayout as! HorizontalFlowLayout
-        let maxItems = layout.maxVerticalItemsCount() * layout.maxHorizontalItemsCount() * ASTopSiteSourceUX.maxNumberOfPages
-        // Sometimes the number of topsites will be more than the amount of space we have availible to display them.
-        // In that case only display enough
-        return min(maxItems, self.content.count)
+        return self.content.count
     }
 
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {

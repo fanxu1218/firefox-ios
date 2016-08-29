@@ -18,12 +18,14 @@ struct ASPanelUX {
     static let historySize = 10
     static let TopSiteSingleRowHeight: CGFloat = 120
     static let TopSiteDoubleRowHeight: CGFloat = 220
+    static let TopSiteDoubleRowHeightLarge: CGFloat = 250
+
 }
 
 class ActivityStreamPanel: UITableViewController, HomePanel {
     weak var homePanelDelegate: HomePanelDelegate? = nil
     private let profile: Profile
-    private let topSiteHandler = ASHorizontalScrollSource()
+    private let topSitesManager = ASHorizontalScrollCellManager()
 
     var topSites: [TopSiteItem] = []
     var history: [Site] = []
@@ -71,7 +73,8 @@ class ActivityStreamPanel: UITableViewController, HomePanel {
 
     override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        self.topSiteHandler.currentTraits = self.traitCollection
+        self.topSitesManager.currentTraits = self.traitCollection
+        self.tableView.reloadData()
     }
 
 }
@@ -99,12 +102,16 @@ extension ActivityStreamPanel {
             }
         }
 
-        func cellHeight(traits: UITraitCollection) -> CGFloat {
+        func cellHeight(traits: UITraitCollection, width: CGFloat) -> CGFloat {
             switch self {
             case .History: return UITableViewAutomaticDimension
             case .TopSites:
                 if traits.horizontalSizeClass == .Compact && traits.verticalSizeClass == .Regular {
-                    return ASPanelUX.TopSiteDoubleRowHeight
+                    if width == 320 {
+                        return ASPanelUX.TopSiteDoubleRowHeight
+                    } else {
+                        return ASPanelUX.TopSiteDoubleRowHeightLarge
+                    }
                 } else {
                     return ASPanelUX.TopSiteSingleRowHeight
                 }
@@ -152,7 +159,7 @@ extension ActivityStreamPanel {
     }
 
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-        return Section(indexPath.section).cellHeight(self.traitCollection)
+        return Section(indexPath.section).cellHeight(self.traitCollection, width: self.view.frame.width)
     }
 
     private func showSiteWithURL(url: NSURL) {
@@ -182,7 +189,7 @@ extension ActivityStreamPanel {
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch Section(section) {
             case .TopSites:
-                return topSiteHandler.content.isEmpty ? 0 : 1
+                return topSitesManager.content.isEmpty ? 0 : 1
             case .History:
                  return self.history.count
         }
@@ -202,7 +209,7 @@ extension ActivityStreamPanel {
 
     func configureTopSitesCell(cell: UITableViewCell, forIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let topSiteCell = cell as! ASHorizontalScrollCell
-        topSiteCell.delegate = self.topSiteHandler
+        topSiteCell.delegate = self.topSitesManager
         return cell
     }
 
@@ -238,11 +245,11 @@ extension ActivityStreamPanel {
         invalidateTopSites().uponQueue(dispatch_get_main_queue()) { result in
             let sites = result.successValue ?? []
             self.topSites = sites
-            self.topSiteHandler.content = self.topSites
-            self.topSiteHandler.urlPressedHandler = { [unowned self] url in
+            self.topSitesManager.currentTraits = self.view.traitCollection
+            self.topSitesManager.content = self.topSites
+            self.topSitesManager.urlPressedHandler = { [unowned self] url in
                 self.showSiteWithURL(url)
             }
-            self.topSiteHandler.currentTraits = self.traitCollection
             self.tableView.reloadData()
         }
     }
