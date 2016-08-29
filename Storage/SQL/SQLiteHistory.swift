@@ -696,6 +696,45 @@ extension SQLiteHistory: BrowserHistory {
         let allSQL = "SELECT * FROM (SELECT * FROM (\(historySQL)) UNION SELECT * FROM (\(bookmarksSQL))) ORDER BY is_bookmarked DESC, frecencies DESC"
         return (allSQL, args)
     }
+
+    public func getHighlights() -> Deferred<Maybe<Cursor<Site>>> {
+        let limit = 20
+        let microsecondsPerDay: Timestamp = 86_400_000_000      // 1000 * 1000 * 60 * 60 * 24
+        let microsecondsPerMinute: Timestamp = 60_000_000 // 1000 * 1000 * 60
+        let threeDaysAgo = NSDate.nowMicroseconds() - 3 * microsecondsPerDay
+        let thirtyMinutesAgo = NSDate.nowMicroseconds() - 30 * microsecondsPerMinute
+        let bookmarkLimit = 1
+        let historyLimit = limit - bookmarkLimit
+
+        let bookmarksQuery = [
+            "SELECT \(ViewAllBookmarks).id AS bookmark_id, 0 AS history_id, \(ViewAllBookmarks).url, \(ViewAllBookmarks).title",
+            "FROM \(ViewAllBookmarks)",
+            "LEFT JOIN \(TableHistory) ON \(ViewAllBookmarks).url = \(TableHistory).url",
+            "WHERE \(ViewAllBookmarks).date_created > \(threeDaysAgo) AND \(ViewAllBookmarks).visits <= 3",
+            "ORDER BY \(ViewAllBookmarks).date_created DESC",
+            "LIMIT \(bookmarkLimit)"
+        ].componentsJoinedByString(" ")
+
+
+        let historyQuery = [
+            "SELECT \(TableHistory).id AS history_id, 0 as bookmark_id, \(TableHistory).url, \(TableHistory).title",
+            "FROM \(TableHistory)",
+            "WHERE \(TableHistory).date_last_visited < \(thirtyMinutesAgo)",
+            "AND \(TableHistory).visits <= 3",
+            "AND \(TableHistory).title NOT NULL AND \(TableHistory).title != ''",
+            "ORDER BY \(TableHistory).date_last_visited DESC",
+            "LIMIT \(historyLimit)"
+        ].componentsJoinedByString(" ")
+
+        let highlightsQuery = [
+            "SELECT DISTINCT * FROM (",
+                bookmarksQuery,
+                historyQuery,
+            ");"
+        ].componentsJoinedByString(" ")
+
+        return self.db.runQuery(highlightsQuery, args: nil, factory: SQLiteHistory.iconHistoryColumnFactory)
+    }
 }
 
 extension SQLiteHistory: Favicons {
