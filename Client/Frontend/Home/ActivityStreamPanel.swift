@@ -14,12 +14,15 @@ private let log = Logger.browserLogger
 // MARK: -  Lifecycle
 struct ASPanelUX {
     static let backgroundColor = UIColor(white: 1.0, alpha: 0.5)
-    static let topSitesCacheSize = 20
+    static let topSitesCacheSize = 12
     static let historySize = 10
-    static let TopSiteSingleRowHeight: CGFloat = 120
-    static let TopSiteDoubleRowHeight: CGFloat = 220
-    static let TopSiteDoubleRowHeightLarge: CGFloat = 250
 
+    // These ratios repersent how much space the topsites require.
+    // They are calculated from the iphone 5 which requires 220px of vertical height on a 320px width screen.
+    // 320/220 = 1.4545.
+    static let TopSiteDoubleRowRatio: CGFloat = 1.4545
+    static let TopSiteSingleRowRatio: CGFloat = 4.7333
+    static let PageControlOffsetSize: CGFloat = 20
 }
 
 class ActivityStreamPanel: UITableViewController, HomePanel {
@@ -65,6 +68,7 @@ class ActivityStreamPanel: UITableViewController, HomePanel {
         tableView.separatorInset = UIEdgeInsetsZero
         tableView.estimatedRowHeight = 65
         tableView.estimatedSectionHeaderHeight = 15
+        tableView.sectionFooterHeight = 0
         tableView.sectionHeaderHeight = UITableViewAutomaticDimension
 
         reloadTopSites()
@@ -107,13 +111,9 @@ extension ActivityStreamPanel {
             case .History: return UITableViewAutomaticDimension
             case .TopSites:
                 if traits.horizontalSizeClass == .Compact && traits.verticalSizeClass == .Regular {
-                    if width == 320 {
-                        return ASPanelUX.TopSiteDoubleRowHeight
-                    } else {
-                        return ASPanelUX.TopSiteDoubleRowHeightLarge
-                    }
+                    return CGFloat(Int(width / ASPanelUX.TopSiteDoubleRowRatio)) + ASPanelUX.PageControlOffsetSize
                 } else {
-                    return ASPanelUX.TopSiteSingleRowHeight
+                    return CGFloat(Int(width / ASPanelUX.TopSiteSingleRowRatio)) + ASPanelUX.PageControlOffsetSize
                 }
             }
         }
@@ -162,7 +162,7 @@ extension ActivityStreamPanel {
         return Section(indexPath.section).cellHeight(self.traitCollection, width: self.view.frame.width)
     }
 
-    private func showSiteWithURL(url: NSURL) {
+    private func showSiteWithURLHandler(url: NSURL) {
         let visitType = VisitType.Bookmark
         homePanelDelegate?.homePanel(self, didSelectURL: url, visitType: visitType)
     }
@@ -171,7 +171,7 @@ extension ActivityStreamPanel {
         switch Section(indexPath.section) {
         case .History:
             let site = self.history[indexPath.row]
-            showSiteWithURL(NSURL(string:site.url)!)
+            showSiteWithURLHandler(NSURL(string:site.url)!)
         case .TopSites:
             return
         } 
@@ -248,7 +248,7 @@ extension ActivityStreamPanel {
             self.topSitesManager.currentTraits = self.view.traitCollection
             self.topSitesManager.content = self.topSites
             self.topSitesManager.urlPressedHandler = { [unowned self] url in
-                self.showSiteWithURL(url)
+                self.showSiteWithURLHandler(url)
             }
             self.tableView.reloadData()
         }

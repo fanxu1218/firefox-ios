@@ -57,27 +57,9 @@ class TopSiteItemCell: UICollectionViewCell {
 
         contentView.layer.cornerRadius = TopSiteCellUX.CellCornerRadius
         contentView.layer.masksToBounds = true
-
         contentView.addSubview(titleLabel)
         contentView.addSubview(imageView)
         contentView.addSubview(selectedOverlay)
-
-        let heightInset = frame.height * TopSiteCellUX.TitleInsetPercent
-        titleLabel.snp_makeConstraints { make in
-            make.edges.equalTo(self).inset(UIEdgeInsets(top: heightInset, left: 0, bottom: 0, right: 0))
-        }
-
-        imageView.snp_makeConstraints { make in
-            make.size.equalTo(CGSize(width: self.frame.width/2, height: self.frame.height/2))
-
-            // Add an offset to the image to make it appear centered with the titleLabel
-            let offset = self.frame.height - CGFloat(heightInset)
-            make.center.equalTo(self.snp_center).offset(UIEdgeInsets(top: -offset/2, left: 0, bottom: 0, right: 0))
-        }
-
-        selectedOverlay.snp_remakeConstraints { make in
-            make.edges.equalTo(contentView)
-        }
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -89,6 +71,27 @@ class TopSiteItemCell: UICollectionViewCell {
         contentView.backgroundColor = UIColor.lightGrayColor()
         imageView.image = nil
         titleLabel.text = ""
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let heightInset = frame.height * TopSiteCellUX.TitleInsetPercent
+
+        titleLabel.snp_remakeConstraints { make in
+            make.edges.equalTo(contentView).inset(UIEdgeInsets(top: heightInset, left: 0, bottom: 0, right: 0))
+        }
+        imageView.snp_remakeConstraints { make in
+            make.size.equalTo(CGSize(width: self.frame.width/2, height: self.frame.height/2))
+
+            // Add an offset to the image to make it appear centered with the titleLabel
+            let offset = self.frame.height - CGFloat(heightInset)
+            make.center.equalTo(self.snp_center).offset(UIEdgeInsets(top: -offset/2, left: 0, bottom: 0, right: 0))
+        }
+
+        selectedOverlay.snp_remakeConstraints { make in
+            make.edges.equalTo(contentView)
+        }
+
     }
 
     private func setImageWithURL(url: NSURL) {
@@ -125,7 +128,7 @@ struct ASHorizontalScrollCellUX {
     static let BackgroundColor = UIColor.whiteColor()
     static let PageControlRadius: CGFloat = 3
     static let PageControlSize = CGSize(width: 30, height: 15)
-    static let PageControlOffset = -5
+    static let PageControlOffset: CGFloat = -20
 }
 
 /*
@@ -173,12 +176,12 @@ class ASHorizontalScrollCell: UITableViewCell {
         contentView.addSubview(pageControl)
 
         collectionView.snp_makeConstraints { make in
-            make.edges.equalTo(contentView).priorityLow()
+            make.edges.equalTo(contentView).offset(UIEdgeInsets(top: 0, left: 0, bottom: ASHorizontalScrollCellUX.PageControlOffset, right: 0))
         }
 
         pageControl.snp_makeConstraints { make in
             make.size.equalTo(ASHorizontalScrollCellUX.PageControlSize)
-            make.top.equalTo(collectionView.snp_bottom).offset(ASHorizontalScrollCellUX.PageControlOffset)
+            make.top.equalTo(collectionView.snp_bottom)
             make.centerX.equalTo(self.snp_centerX)
         }
     }
@@ -317,8 +320,8 @@ class HorizontalFlowLayout: UICollectionViewLayout {
     Defines the number of items to show in topsites for different size classes.
 */
 struct ASTopSiteSourceUX {
-    static let verticalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 1, UIUserInterfaceSizeClass.Regular : 2]
-    static let horizontalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 3, UIUserInterfaceSizeClass.Regular : 5]
+    static let verticalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 1, UIUserInterfaceSizeClass.Regular : 2, UIUserInterfaceSizeClass.Unspecified: 0]
+    static let horizontalItemsForTraitSizes = [UIUserInterfaceSizeClass.Compact : 3, UIUserInterfaceSizeClass.Regular : 5, UIUserInterfaceSizeClass.Unspecified: 0]
     static let maxNumberOfPages = 2
     static let CellIdentifier = "TopSiteItemCell"
 }
@@ -335,22 +338,7 @@ protocol ASHorizontalLayoutDelegate {
 
 class ASHorizontalScrollCellManager: NSObject, UICollectionViewDelegate, UICollectionViewDataSource, ASHorizontalLayoutDelegate {
 
-    var _content = [TopSiteItem]()
-    var content: [TopSiteItem] {
-        get {
-            return _content
-        }
-        set(newValue) {
-            // We only want to display upto 2 pages of content. So trim the rest of the items.
-            let maxItems = numberOfVerticalItems() * numberOfHorizontalItems() * ASTopSiteSourceUX.maxNumberOfPages
-            if maxItems == 0 {
-                _content = newValue
-            }
-            _content = newValue.enumerate().flatMap {(idx, element) in
-                return idx >= maxItems ? nil : element
-            }
-        }
-    }
+    var content: [TopSiteItem] = []
 
     var urlPressedHandler: ((NSURL) -> Void)?
     var pageChangedHandler: ((CGFloat) -> Void)?
@@ -363,7 +351,6 @@ class ASHorizontalScrollCellManager: NSObject, UICollectionViewDelegate, UIColle
         guard let traits = currentTraits else {
             return 0
         }
-        //nil here how
         return ASTopSiteSourceUX.verticalItemsForTraitSizes[traits.verticalSizeClass]!
     }
 
@@ -403,4 +390,3 @@ class ASHorizontalScrollCellManager: NSObject, UICollectionViewDelegate, UIColle
         pageChangedHandler?(scrollView.contentOffset.x / pageWidth)
     }
 }
-
